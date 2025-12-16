@@ -13,24 +13,28 @@ const Dashboard: React.FC = () => {
   // Track the current "data block" (2-hour interval index)
   const currentBlockRef = useRef<number>(Math.floor(Date.now() / (1000 * 60 * 60 * 2)));
 
-  const fetchData = () => {
+  const fetchData = async () => {
     // Determine which 2-hour block we are in
     const newBlock = Math.floor(Date.now() / (1000 * 60 * 60 * 2));
-    
+
     // If it's a new block (or initial load), we get new data
-    // (Note: getAllBeachesData generates random data on every call, 
-    // simulating a "live" change)
     if (newBlock !== currentBlockRef.current || beachData.length === 0) {
-        currentBlockRef.current = newBlock;
-        setBeachData(getAllBeachesData());
+      currentBlockRef.current = newBlock;
+      try {
+        const all = await getAllBeachesData();
+        setBeachData(all);
+      } catch (e) {
+        console.error('Dashboard data fetch failed:', e);
+      }
     }
+
     setLoading(false);
   };
 
   useEffect(() => {
     // Initial fetch
     const timer = setTimeout(() => {
-      fetchData();
+      void fetchData();
     }, 800);
 
     // Check every minute if we entered a new 2-hour block
@@ -38,7 +42,7 @@ const Dashboard: React.FC = () => {
         const checkBlock = Math.floor(Date.now() / (1000 * 60 * 60 * 2));
         if (checkBlock !== currentBlockRef.current) {
             setLoading(true); // Optional: show loading state briefly
-            setTimeout(() => fetchData(), 500);
+          setTimeout(() => void fetchData(), 500);
         }
     }, 60000);
 

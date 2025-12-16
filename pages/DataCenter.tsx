@@ -23,8 +23,22 @@ const DataCenter: React.FC = () => {
   useEffect(() => {
     // Reset AI report when beach changes
     setAiReport("");
-    const beachData = getBeachData(selectedBeachId);
-    setData(beachData);
+    useEffect(() => {
+        setAiReport("");
+
+        const run = async () => {
+            try {
+            const beachData = await getBeachData(selectedBeachId);
+            setData(beachData);
+            } catch (e) {
+            console.error(e);
+            setData(null);
+            }
+        };
+
+        run();
+        }, [selectedBeachId]);
+
   }, [selectedBeachId]);
 
   const handleGenerateReport = async () => {

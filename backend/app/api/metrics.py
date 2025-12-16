@@ -25,6 +25,19 @@ def get_sst(
     beach = BEACHES[beach_id]
     sst = get_sst_for_beach(beach_id, days=days)
 
+    if sst is None:
+        return {
+            "metric": "sea_surface_temperature",
+            "unit": "celsius",
+            "days": days,
+            "data": {
+                "id": beach_id,
+                "name": beach["name"],
+                "sst_celsius": None,
+                "status": "no_data",
+            },
+        }
+
     return {
         "metric": "sea_surface_temperature",
         "unit": "celsius",
@@ -46,7 +59,7 @@ def get_sst_all(days: int = Query(7, ge=1, le=30)):
         results.append({
             "id": beach_id,
             "name": beach["name"],
-            "sst_celsius": round(sst, 2)
+            "sst_celsius": None if sst is None else round(sst, 2)
         })
 
     return {
@@ -118,7 +131,20 @@ def get_wqi(
     if beach_id not in BEACHES:
         raise HTTPException(status_code=404, detail="Beach not found")
 
-    result = calculate_wqi(beach_id, days)
+    try:
+        result = calculate_wqi(beach_id, days)
+    except Exception:
+        return {
+            "metric": "water_quality_index",
+            "scale": "0-100",
+            "days": days,
+            "data": {
+                "id": beach_id,
+                "name": BEACHES[beach_id]["name"],
+                "wqi": None,
+                "status": "no_data",
+            },
+        }
 
     return {
         "metric": "water_quality_index",
@@ -165,6 +191,19 @@ def get_crowdedness(beach_id: str, days: int = 7):
         raise HTTPException(status_code=404, detail="Beach not found")
 
     sst = get_sst_for_beach(beach_id, days=days)
+    if sst is None:
+        return {
+            "metric": "crowdedness",
+            "unit": "percent",
+            "data": {
+                "id": beach_id,
+                "name": BEACHES[beach_id]["name"],
+                "crowdedness_percent": None,
+                "sst_celsius": None,
+                "status": "no_data",
+            },
+        }
+
     crowdedness = get_crowdedness_percent(sst_celsius=sst)
 
     return {

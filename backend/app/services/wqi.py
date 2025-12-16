@@ -43,31 +43,38 @@ def calculate_wqi(beach_id: str, days: int = 7) -> dict:
     chl = get_chlorophyll_for_beach(beach_id, days)
     turb = get_turbidity_for_beach(beach_id, days)
 
-    if sst is None or chl is None or turb is None:
+    # Bazı sahillerde (özellikle kıyı/maske karışımı) chl/turb ara ara None dönebilir.
+    # 500 vermek yerine, eldeki verilerle ağırlıkları yeniden normalize ederek hesaplıyoruz.
+    parts: list[tuple[str, float, float]] = []  # (name, weight, normalized)
+
+    if sst is not None:
+        parts.append(("sst", 0.25, normalize_sst(sst)))
+    if chl is not None:
+        parts.append(("chlorophyll", 0.35, normalize_chlorophyll(chl)))
+    if turb is not None:
+        parts.append(("turbidity", 0.40, normalize_turbidity(turb)))
+
+    if not parts:
         raise ValueError("Insufficient data for WQI calculation")
 
-    sst_n = normalize_sst(sst)
-    chl_n = normalize_chlorophyll(chl)
-    turb_n = normalize_turbidity(turb)
-
-    pollution_index = (
-        0.4 * turb_n +
-        0.35 * chl_n +
-        0.25 * sst_n
-    )
+    weight_sum = sum(w for _, w, _ in parts)
+    pollution_index = sum((w / weight_sum) * n for _, w, n in parts)
 
     wqi = round(100 * (1 - pollution_index), 1)
 
     return {
         "wqi": wqi,
         "components": {
-            "sst_celsius": round(sst, 2),
-            "chlorophyll": round(chl, 2),
-            "turbidity_ndti": round(turb, 4),
+            "sst_celsius": None if sst is None else round(sst, 2),
+            "chlorophyll": None if chl is None else round(chl, 2),
+            "turbidity_ndti": None if turb is None else round(turb, 4),
             "normalized": {
-                "sst": round(sst_n, 3),
-                "chlorophyll": round(chl_n, 3),
-                "turbidity": round(turb_n, 3)
-            }
-        }
+                "sst": None if sst is None else round(normalize_sst(sst), 3),
+                "chlorophyll": None if chl is None else round(normalize_chlorophyll(chl), 3),
+                "turbidity": None if turb is None else round(normalize_turbidity(turb), 3),
+            },
+            "weights": {
+                name: round(w / weight_sum, 3) for name, w, _ in parts
+            },
+        },
     }

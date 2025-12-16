@@ -1,77 +1,168 @@
 import { BeachData, EnvironmentalData } from '../types';
 import { BEACHES } from '../constants';
 
-// Helper to generate a random number within a range
-const random = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+const API_BASE =
+  (import.meta as any)?.env?.VITE_API_BASE_URL?.replace(/\/$/, '') ||
+  'http://127.0.0.1:8000';
 
-// Helper to smooth data to look like realistic trends rather than white noise
-const smoothData = (prev: number, min: number, max: number, volatility: number): number => {
-  const change = random(-volatility, volatility);
-  let next = prev + change;
-  if (next < min) next = min + random(0, volatility);
-  if (next > max) next = max - random(0, volatility);
-  return next;
-};
+type Json = any;
 
-export const generateHistoricalData = (days: number): EnvironmentalData[] => {
+async function fetchJSON<T = Json>(path: string): Promise<T> {
+  const url = `${API_BASE}${path}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`HTTP ${res.status} ${res.statusText} - ${url} - ${txt}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
+
+// Turbidity gibi “ham” değerleri UI’daki 0–100 kirlilik yüzdesine map’lemek için basit bir ölçek.
+// İleride gerçek bir modele bağlayabiliriz; şimdilik UI’ı beslemek için stabil.
+function turbidityToPollutionPercent(t: number | null | undefined): number {
+  if (t == null || Number.isNaN(t)) return 0;
+
+  // Backend tarafında turbidity proxy'si NDTI olarak hesaplanıyor ve aralık yaklaşık [-1, 1].
+  // UI'daki "kirlilik" yüzdesi için bunu 0–100 ölçeğine normalize ediyoruz.
+  // -1 -> 0%, 0 -> 50%, +1 -> 100%
+  const pct = ((t + 1) / 2) * 100;
+  return Math.round(clamp(pct, 0, 100));
+}
+
+function no2ToRelativeIndex(no2: number | null | undefined): number {
+  if (no2 == null || Number.isNaN(no2)) return 0;
+
+  // classify_no2 eşiklerini “relative index”e çeviriyoruz.
+  // good ~ 20, moderate ~ 50, poor ~ 80 gibi okunabilir bir ölçek.
+  if (no2 < 0.00003) return 20;
+  if (no2 < 0.00006) return 50;
+  return 80;
+}
+
+// “Trend endpoint” yazana kadar UI’daki chart’ı boş bırakmamak için:
+// gerçek güncel değerin etrafında küçük oynamalarla 7 günlük seri üretiyoruz.
+function generateHistoryFromCurrent(days: number, current: Omit<EnvironmentalData, 'date'>): EnvironmentalData[] {
   const data: EnvironmentalData[] = [];
   const today = new Date();
-  
-  // Initial seed values
-  let currentOccupancy = 45;
-  let currentWaterQuality = 85;
-  let currentAirQuality = 30;
-  let currentTemp = 28;
+
+  let occ = current.occupancy;
+  let wqi = current.waterQuality;
+  let air = current.airQuality;
+  let temp = current.temperature;
+  let pol = current.pollutionLevel;
+
+  const rand = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+  const smooth = (prev: number, min: number, max: number, vol: number) => {
+    const next = prev + rand(-vol, vol);
+    return clamp(next, min, max);
+  };
 
   for (let i = days; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i);
-    
-    // Simulate daily fluctuations
-    currentOccupancy = smoothData(currentOccupancy, 10, 95, 15);
-    currentWaterQuality = smoothData(currentWaterQuality, 60, 98, 5);
-    currentAirQuality = smoothData(currentAirQuality, 10, 80, 10);
-    currentTemp = smoothData(currentTemp, 24, 35, 2);
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
 
-    // Calculate pollution based on occupancy (Correlation: More people ~ More pollution)
-    // Base pollution + (Occupancy factor) + Random variance
-    let pollution = 10 + (currentOccupancy * 0.5) + random(-5, 8);
-    // Clamp between 0 and 100
-    pollution = Math.min(100, Math.max(0, pollution));
+    // Küçük volatilite (göze “gerçek” görünen trend için)
+    occ = smooth(occ, 0, 100, 6);
+    wqi = smooth(wqi, 0, 100, 2);
+    air = smooth(air, 0, 100, 3);
+    temp = smooth(temp, -5, 45, 1);
+    pol = smooth(pol, 0, 100, 4);
 
     data.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      occupancy: currentOccupancy,
-      waterQuality: currentWaterQuality,
-      airQuality: currentAirQuality,
-      temperature: currentTemp,
-      pollutionLevel: Math.floor(pollution)
+      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      occupancy: Math.round(occ),
+      waterQuality: Math.round(wqi),
+      airQuality: Math.round(air),
+      temperature: Math.round(temp),
+      pollutionLevel: Math.round(pol),
     });
   }
+
   return data;
-};
+}
 
-export const getBeachData = (beachId: string): BeachData | null => {
-  const beach = BEACHES.find(b => b.id === beachId);
-  if (!beach) return null;
+async function getCurrentStatsForBeach(beachId: string): Promise<{
+  occupancy: number;
+  waterQuality: number;
+  temperature: number;
+  pollutionLevel: number;
+  airQuality: number;
+}> {
+  // hepsini paralel çekiyoruz
+  const [sstRes, wqiRes, turbRes, airRes, crowdRes] = await Promise.allSettled([
+    fetchJSON(`/api/metrics/sst?beach_id=${encodeURIComponent(beachId)}&days=7`),
+    fetchJSON(`/api/metrics/wqi?beach_id=${encodeURIComponent(beachId)}&days=7`),
+    fetchJSON(`/api/metrics/turbidity?beach_id=${encodeURIComponent(beachId)}&days=7`),
+    fetchJSON(`/api/metrics/air-quality?beach_id=${encodeURIComponent(beachId)}&days=14`),
+    fetchJSON(`/api/metrics/crowdedness?beach_id=${encodeURIComponent(beachId)}`),
+  ]);
 
-  const history = generateHistoricalData(7);
-  const currentStats = history[history.length - 1];
+  const sstC = (sstRes.status === 'fulfilled' ? sstRes.value?.data?.sst_celsius : null) as number | null;
+  const wqi = (wqiRes.status === 'fulfilled' ? wqiRes.value?.data?.wqi : null) as number | null;
+
+  const turbidity = (turbRes.status === 'fulfilled' ? turbRes.value?.data?.turbidity : null) as number | null;
+
+  const no2 = (airRes.status === 'fulfilled' ? airRes.value?.data?.no2_mol_m2 : null) as number | null;
+
+  const occupancyPct = (crowdRes.status === 'fulfilled'
+    ? crowdRes.value?.data?.crowdedness_percent ?? crowdRes.value?.data?.occupancy_percent
+    : null) as number | null;
 
   return {
-    ...beach,
+    occupancy: occupancyPct == null ? 0 : Math.round(clamp(occupancyPct, 0, 100)),
+    waterQuality: wqi == null ? 0 : Math.round(clamp(wqi, 0, 100)),
+    temperature: sstC == null ? 0 : Math.round(sstC),
+    pollutionLevel: turbidityToPollutionPercent(turbidity),
+    airQuality: no2ToRelativeIndex(no2),
+  };
+}
+
+export const getBeachData = async (beachId: string): Promise<BeachData | null> => {
+  const beach = BEACHES.find((b: any) => b.id === beachId);
+  if (!beach) return null;
+
+  const currentStats = await getCurrentStatsForBeach(beachId);
+
+  const history = generateHistoryFromCurrent(7, {
+    occupancy: currentStats.occupancy,
+    waterQuality: currentStats.waterQuality,
+    airQuality: currentStats.airQuality,
+    temperature: currentStats.temperature,
+    pollutionLevel: currentStats.pollutionLevel,
+  });
+
+  return {
+    ...(beach as any),
     history,
-    currentStats
+    currentStats,
   };
 };
 
-export const getAllBeachesData = (): BeachData[] => {
-  return BEACHES.map(beach => {
-    const history = generateHistoricalData(7);
-    return {
-      ...beach,
-      history,
-      currentStats: history[history.length - 1]
-    };
-  });
+export const getAllBeachesData = async (): Promise<BeachData[]> => {
+  const results = await Promise.all(
+    BEACHES.map(async (beach: any) => {
+      const currentStats = await getCurrentStatsForBeach(beach.id);
+
+      const history = generateHistoryFromCurrent(7, {
+        occupancy: currentStats.occupancy,
+        waterQuality: currentStats.waterQuality,
+        airQuality: currentStats.airQuality,
+        temperature: currentStats.temperature,
+        pollutionLevel: currentStats.pollutionLevel,
+      });
+
+      return {
+        ...(beach as any),
+        history,
+        currentStats,
+      };
+    })
+  );
+
+  return results;
 };

@@ -27,7 +27,7 @@ def _get_date_range(days: int):
 def get_sst_for_beach(
     beach_id: str,
     days: int = 7,
-) -> float:
+) -> float | None:
     """
     Belirli bir sahil için ortalama deniz yüzeyi sıcaklığı (°C).
 
@@ -41,7 +41,10 @@ def get_sst_for_beach(
 
     start_date, end_date = _get_date_range(days)
 
-    geometry = get_beach_buffer(beach_id)
+    # OISST'in çözünürlüğü ~25km olduğu için 3km'lik buffer bazı sahillerde
+    # (özellikle kıyı/dağ-karışımı piksellerde) "no valid pixels" döndürebilir.
+    # SST için daha büyük bir buffer kullanıyoruz.
+    geometry = get_beach_buffer(beach_id, buffer_m=30000)
 
     collection = (
         ee.ImageCollection(OISST_COLLECTION)
@@ -60,13 +63,17 @@ def get_sst_for_beach(
         maxPixels=1e9,
     )
 
-    # Kelvin → Celsius dönüşümü
-    sst_raw = stats.get("sst")
+    # Earth Engine objesini Python değerine indirip null kontrolü yapıyoruz.
+    try:
+        stats_dict = stats.getInfo()
+    except Exception:
+        # EE bazen geçici hatalar atabilir; caller tarafı no_data olarak ele alabilir.
+        return None
+
+    sst_raw = (stats_dict or {}).get("sst")
     if sst_raw is None:
-        raise ValueError("SST data not available for this beach")
+        return None
 
     # NOAA OISST: SST = Celsius * 100
-    sst_celsius = ee.Number(sst_raw).multiply(0.01)
-
-    return sst_celsius.getInfo()
+    return float(sst_raw) * 0.01
 
