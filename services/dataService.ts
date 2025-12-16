@@ -66,6 +66,11 @@ function generateHistoryFromCurrent(days: number, current: Omit<EnvironmentalDat
     const d = new Date(today);
     d.setDate(today.getDate() - i);
 
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const isoDate = `${yyyy}-${mm}-${dd}`;
+
     // Küçük volatilite (göze “gerçek” görünen trend için)
     occ = smooth(occ, 0, 100, 6);
     wqi = smooth(wqi, 0, 100, 2);
@@ -74,7 +79,7 @@ function generateHistoryFromCurrent(days: number, current: Omit<EnvironmentalDat
     pol = smooth(pol, 0, 100, 4);
 
     data.push({
-      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      date: isoDate,
       occupancy: Math.round(occ),
       waterQuality: Math.round(wqi),
       airQuality: Math.round(air),
@@ -122,13 +127,13 @@ async function getCurrentStatsForBeach(beachId: string): Promise<{
   };
 }
 
-export const getBeachData = async (beachId: string): Promise<BeachData | null> => {
+export const getBeachData = async (beachId: string, historyDays: number = 7): Promise<BeachData | null> => {
   const beach = BEACHES.find((b: any) => b.id === beachId);
   if (!beach) return null;
 
   const currentStats = await getCurrentStatsForBeach(beachId);
 
-  const history = generateHistoryFromCurrent(7, {
+  const history = generateHistoryFromCurrent(historyDays, {
     occupancy: currentStats.occupancy,
     waterQuality: currentStats.waterQuality,
     airQuality: currentStats.airQuality,
@@ -143,12 +148,12 @@ export const getBeachData = async (beachId: string): Promise<BeachData | null> =
   };
 };
 
-export const getAllBeachesData = async (): Promise<BeachData[]> => {
+export const getAllBeachesData = async (historyDays: number = 7): Promise<BeachData[]> => {
   const results = await Promise.all(
     BEACHES.map(async (beach: any) => {
       const currentStats = await getCurrentStatsForBeach(beach.id);
 
-      const history = generateHistoryFromCurrent(7, {
+      const history = generateHistoryFromCurrent(historyDays, {
         occupancy: currentStats.occupancy,
         waterQuality: currentStats.waterQuality,
         airQuality: currentStats.airQuality,

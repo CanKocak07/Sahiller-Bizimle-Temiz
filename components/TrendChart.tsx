@@ -15,6 +15,17 @@ interface TrendChartProps {
   metric: MetricType;
 }
 
+function formatTickDate(value: unknown): string {
+  const s = value == null ? '' : String(value);
+
+  // Prefer ISO YYYY-MM-DD (generated in dataService)
+  const isoMatch = /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const d = isoMatch ? new Date(`${s}T00:00:00`) : new Date(s);
+  if (Number.isNaN(d.getTime())) return s;
+
+  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+}
+
 const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
   let dataKey: keyof EnvironmentalData = 'occupancy';
   let color = '#0ea5e9'; // sky
@@ -73,6 +84,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
             fontSize={12} 
             tickLine={false}
             axisLine={false}
+            tickFormatter={formatTickDate}
           />
           <YAxis 
             stroke="#64748b" 
@@ -89,6 +101,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
               boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
             }}
             formatter={(value: number) => [`${value}${unit}`, metric]}
+            labelFormatter={(label) => formatTickDate(label)}
             labelStyle={{ color: '#64748b', marginBottom: '4px' }}
           />
           <Area

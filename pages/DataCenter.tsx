@@ -7,6 +7,22 @@ import { BEACHES } from '../constants';
 import TrendChart from '../components/TrendChart';
 import { BarChart2, Download, Bot } from 'lucide-react';
 
+function toCsvValue(value: unknown): string {
+    const s = value == null ? '' : String(value);
+    const escaped = s.replace(/"/g, '""');
+    return /[\n",]/.test(escaped) ? `"${escaped}"` : escaped;
+}
+
+function slugifyFileName(name: string): string {
+    return name
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9\-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
 const DataCenter: React.FC = () => {
   const { search } = useLocation();
   const query = new URLSearchParams(search);
@@ -21,24 +37,26 @@ const DataCenter: React.FC = () => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   useEffect(() => {
-    // Reset AI report when beach changes
-    setAiReport("");
-    useEffect(() => {
+        // Reset AI report and load new beach data when selection changes
         setAiReport("");
+        setData(null);
 
+        let cancelled = false;
         const run = async () => {
             try {
-            const beachData = await getBeachData(selectedBeachId);
-            setData(beachData);
+                const beachData = await getBeachData(selectedBeachId, 30);
+                if (!cancelled) setData(beachData);
             } catch (e) {
-            console.error(e);
-            setData(null);
+                console.error(e);
+                if (!cancelled) setData(null);
             }
         };
 
-        run();
-        }, [selectedBeachId]);
+        void run();
 
+        return () => {
+            cancelled = true;
+        };
   }, [selectedBeachId]);
 
   const handleGenerateReport = async () => {
@@ -48,6 +66,51 @@ const DataCenter: React.FC = () => {
     setAiReport(report);
     setIsGeneratingReport(false);
   };
+
+    const handleDownloadCsv = () => {
+        if (!data) return;
+        const rows = data.history ?? [];
+        if (rows.length === 0) return;
+
+        const header = [
+            'date',
+            'occupancy_percent',
+            'water_quality_wqi',
+            'air_quality_index',
+            'temperature_c',
+            'pollution_percent',
+        ];
+
+        const csvLines = [
+            header.join(','),
+            ...rows.map((r) =>
+                [
+                    toCsvValue(r.date),
+                    toCsvValue(r.occupancy),
+                    toCsvValue(r.waterQuality),
+                    toCsvValue(r.airQuality),
+                    toCsvValue(r.temperature),
+                    toCsvValue(r.pollutionLevel),
+                ].join(',')
+            ),
+        ];
+
+        const csv = csvLines.join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        const base = slugifyFileName(data.name || data.id || 'beach');
+        const stamp = new Date().toISOString().slice(0, 10);
+        const filename = `${base}-${stamp}.csv`;
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
 
   if (!data) return <div className="p-8 text-center">Veriler yükleniyor...</div>;
 
@@ -94,7 +157,7 @@ const DataCenter: React.FC = () => {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2">
                             <BarChart2 className="text-teal-600" size={20}/>
-                            <h2 className="text-lg font-semibold text-slate-800">7 Günlük {selectedMetric} Eğilimi</h2>
+                            <h2 className="text-lg font-semibold text-slate-800">30 Günlük {selectedMetric} Eğilimi</h2>
                         </div>
                         <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">
                             Son Güncelleme: {new Date().toLocaleTimeString('tr-TR')}
@@ -187,7 +250,10 @@ const DataCenter: React.FC = () => {
                      <div className="relative z-10">
                         <h3 className="font-bold text-lg mb-2">Verileri Dışa Aktar</h3>
                         <p className="text-teal-100 text-sm mb-4">Araştırma amacıyla son 30 günün çevre kayıtlarını indirin.</p>
-                        <button className="flex items-center gap-2 bg-white text-teal-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-teal-50 transition-colors w-full justify-center">
+                        <button
+                            onClick={handleDownloadCsv}
+                            className="flex items-center gap-2 bg-white text-teal-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-teal-50 transition-colors w-full justify-center"
+                        >
                             <Download size={16} /> CSV İndir
                         </button>
                      </div>
