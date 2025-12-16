@@ -44,7 +44,7 @@ const DataCenter: React.FC = () => {
         let cancelled = false;
         const run = async () => {
             try {
-                const beachData = await getBeachData(selectedBeachId, 30);
+                const beachData = await getBeachData(selectedBeachId, 7);
                 if (!cancelled) setData(beachData);
             } catch (e) {
                 console.error(e);
@@ -157,7 +157,7 @@ const DataCenter: React.FC = () => {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2">
                             <BarChart2 className="text-teal-600" size={20}/>
-                            <h2 className="text-lg font-semibold text-slate-800">30 Günlük {selectedMetric} Eğilimi</h2>
+                            <h2 className="text-lg font-semibold text-slate-800">7 Günlük {selectedMetric} Eğilimi</h2>
                         </div>
                         <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">
                             Son Güncelleme: {new Date().toLocaleTimeString('tr-TR')}
@@ -249,7 +249,7 @@ const DataCenter: React.FC = () => {
                 <div className="bg-teal-700 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
                      <div className="relative z-10">
                         <h3 className="font-bold text-lg mb-2">Verileri Dışa Aktar</h3>
-                        <p className="text-teal-100 text-sm mb-4">Araştırma amacıyla son 30 günün çevre kayıtlarını indirin.</p>
+                        <p className="text-teal-100 text-sm mb-4">Araştırma amacıyla son 7 günün çevre kayıtlarını indirin.</p>
                         <button
                             onClick={handleDownloadCsv}
                             className="flex items-center gap-2 bg-white text-teal-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-teal-50 transition-colors w-full justify-center"
