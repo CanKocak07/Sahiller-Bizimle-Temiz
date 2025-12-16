@@ -6,6 +6,7 @@ from app.services.turbidity import get_turbidity_for_beach
 from app.services.wqi import calculate_wqi
 from app.services.pollution import calculate_pollution_from_turbidity
 from app.services.crowdedness import get_crowdedness_percent
+from app.services.air_quality import get_air_quality_for_beach
 
 
 router = APIRouter(
@@ -174,5 +175,25 @@ def get_crowdedness(beach_id: str, days: int = 7):
             "name": BEACHES[beach_id]["name"],
             "crowdedness_percent": crowdedness,
             "sst_celsius": round(sst, 2)
+        }
+    }
+
+
+@router.get("/air-quality")
+def get_air_quality(beach_id: str, days: int = 7):
+    if beach_id not in BEACHES:
+        raise HTTPException(status_code=404, detail="Beach not found")
+
+    result = get_air_quality_for_beach(beach_id, days=days)
+
+    return {
+        "metric": "air_quality",
+        "source": "Sentinel-5P (NO2)",
+        "days": days,
+        "data": {
+            "id": beach_id,
+            "name": BEACHES[beach_id]["name"],
+            "no2_mol_m2": result["no2"],
+            "air_quality": result["air_quality"]
         }
     }

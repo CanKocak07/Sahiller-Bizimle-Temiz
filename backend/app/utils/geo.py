@@ -96,14 +96,16 @@ def get_beach_point(beach_id: str) -> ee.Geometry.Point:
     return ee.Geometry.Point([beach["lon"], beach["lat"]])
 
 
-def get_beach_buffer(beach_id: str) -> ee.Geometry:
+
+def get_beach_buffer(beach_id: str, buffer_m: int | None = None) -> ee.Geometry:
     """
     Sahil noktası etrafında buffer alanı üretir.
 
-    Buffer:
-    - metre cinsindendir
-    - varsayılan olarak deniz çevresini kapsar
+    - buffer metre cinsindendir
+    - eğer buffer_m verilmezse BEACHES içindeki varsayılan kullanılır
     """
     beach = get_beach_config(beach_id)
     point = get_beach_point(beach_id)
-    return point.buffer(beach["buffer_m"])
+
+    radius = buffer_m if buffer_m is not None else beach["buffer_m"]
+    return point.buffer(radius)
