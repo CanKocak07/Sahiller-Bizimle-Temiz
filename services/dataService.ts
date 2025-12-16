@@ -1,9 +1,12 @@
 import { BeachData, EnvironmentalData } from '../types';
 import { BEACHES } from '../constants';
 
+const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL;
+// Default to same-origin (Vite proxy handles /api) to avoid CORS issues.
 const API_BASE =
-  (import.meta as any)?.env?.VITE_API_BASE_URL?.replace(/\/$/, '') ||
-  'http://127.0.0.1:8000';
+  typeof RAW_API_BASE === 'string' && RAW_API_BASE.trim() !== ''
+    ? RAW_API_BASE.replace(/\/$/, '')
+    : '';
 
 type Json = any;
 

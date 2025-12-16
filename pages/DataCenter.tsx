@@ -211,7 +211,7 @@ const DataCenter: React.FC = () => {
                         )}
                         {!aiReport && !isGeneratingReport && (
                              <p className="text-sm text-indigo-600/70">
-                                Mevcut çevresel eğilimleri analiz etmek ve turistler için bir özet almak amacıyla Gemini AI kullanmak için yukarıdaki butona tıklayın.
+                                          Mevcut çevresel eğilimleri analiz etmek ve turistler için bir özet almak için yukarıdaki butona tıklayın.
                             </p>
                         )}
                     </div>

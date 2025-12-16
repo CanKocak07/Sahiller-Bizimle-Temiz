@@ -13,7 +13,7 @@ Bu dosya:
 """
 
 import ee
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 # -------------------------------------------------------------------
@@ -97,7 +97,7 @@ def get_beach_point(beach_id: str) -> ee.Geometry.Point:
 
 
 
-def get_beach_buffer(beach_id: str, buffer_m: int | None = None) -> ee.Geometry:
+def get_beach_buffer(beach_id: str, buffer_m: Optional[int] = None) -> ee.Geometry:
     """
     Sahil noktası etrafında buffer alanı üretir.
 

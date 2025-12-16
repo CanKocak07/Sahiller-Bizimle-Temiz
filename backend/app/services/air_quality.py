@@ -1,9 +1,10 @@
 import ee
 from datetime import datetime, timedelta
+from typing import Optional
 from app.utils.geo import get_beach_buffer
 
 
-def classify_no2(no2_value: float | None) -> str:
+def classify_no2(no2_value: Optional[float]) -> str:
     if no2_value is None:
         return "unknown"
 

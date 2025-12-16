@@ -8,6 +8,7 @@ Bu servis:
 
 import ee
 from datetime import date, timedelta
+from typing import Optional
 from app.utils.geo import get_beach_buffer
 
 
@@ -27,7 +28,7 @@ def _get_date_range(days: int):
 def get_sst_for_beach(
     beach_id: str,
     days: int = 7,
-) -> float | None:
+) -> Optional[float]:
     """
     Belirli bir sahil için ortalama deniz yüzeyi sıcaklığı (°C).
 

@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Optional
 
-def _sst_factor(sst_celsius: float | None) -> float:
+def _sst_factor(sst_celsius: Optional[float]) -> float:
     if sst_celsius is None:
         return 1.0  # veri yoksa etkileme
 
@@ -42,8 +43,8 @@ def _season_factor(month: int) -> float:
 
 
 def get_crowdedness_percent(
-    now: datetime | None = None,
-    sst_celsius: float | None = None
+    now: Optional[datetime] = None,
+    sst_celsius: Optional[float] = None
 ) -> float:
     if now is None:
         now = datetime.now()

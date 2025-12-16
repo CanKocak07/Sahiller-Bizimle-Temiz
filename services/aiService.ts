@@ -1,47 +1,41 @@
-import { GoogleGenAI } from "@google/genai";
 import { BeachData } from "../types";
 
-// Safely access process.env to avoid "process is not defined" error in browsers
-const getApiKey = () => {
-  try {
-    return (typeof process !== 'undefined' && process.env?.API_KEY) ? process.env.API_KEY : '';
-  } catch (e) {
-    return '';
-  }
-};
-
-const apiKey = getApiKey();
+const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL;
+// Default to same-origin (Vite proxy handles /api) to avoid CORS issues.
+const API_BASE =
+  typeof RAW_API_BASE === 'string' && RAW_API_BASE.trim() !== ''
+    ? RAW_API_BASE.replace(/\/$/, '')
+    : '';
 
 export const generateBeachReport = async (beachData: BeachData): Promise<string> => {
-  if (!apiKey) {
-    return "API Anahtarı bulunamadı veya yapılandırılmadı. Lütfen sistem yöneticisi ile iletişime geçin.";
-  }
-
   try {
-    const ai = new GoogleGenAI({ apiKey });
-    
-    const prompt = `
-      Aşağıdaki verileri analiz et: ${beachData.name}, Konum: ${beachData.location}.
-      
-      Mevcut İstatistikler:
-      - Doluluk: %${beachData.currentStats.occupancy}
-      - Kirlilik: %${beachData.currentStats.pollutionLevel} (Kalabalıkla orantılı)
-      - Su Kalitesi Endeksi (WQI): ${beachData.currentStats.waterQuality} (Yüksek olması iyidir)
-      - Hava Kalitesi Endeksi (AQI): ${beachData.currentStats.airQuality} (Düşük olması iyidir)
-      - Sıcaklık: ${beachData.currentStats.temperature}°C
-
-      Geçmiş Veriler (Son 7 Gün):
-      ${JSON.stringify(beachData.history)}
-
-      Lütfen turistler için Türkçe olarak 3 cümlelik kısa ve öz bir analiz yaz. Yüzme ve güneşlenme için uygun bir gün olup olmadığına odaklan, özellikle kalabalık ve kirlilik arasındaki dengeyi belirt. Profesyonel ama samimi bir dil kullan.
-    `;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
+    const res = await fetch(`${API_BASE}/api/ai/beach-report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ beach: beachData }),
     });
 
-    return response.text || "Analiz şu anda kullanılamıyor.";
+    if (!res.ok) {
+      const raw = await res.text().catch(() => '');
+      let detail = '';
+      try {
+        const parsed = JSON.parse(raw) as { detail?: unknown };
+        detail = typeof parsed?.detail === 'string' ? parsed.detail : '';
+      } catch {
+        detail = '';
+      }
+
+      console.error('AI API error:', res.status, detail || raw);
+
+      if (res.status === 503 && detail.includes('OPENAI_API_KEY')) {
+        return 'AI raporu için backend ayarı eksik: OPENAI_API_KEY.';
+      }
+
+      return `Şu anda analiz oluşturulamıyor (AI servis hatası${detail ? `: ${detail}` : ''}).`;
+    }
+
+    const json = (await res.json()) as { report?: string };
+    return json.report || 'Analiz şu anda kullanılamıyor.';
   } catch (error) {
     console.error("AI Generation Error:", error);
     return "Ağ hatası veya yapılandırma sorunu nedeniyle şu anda analiz oluşturulamıyor.";
