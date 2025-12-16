@@ -21,10 +21,20 @@ def get_air_quality_for_beach(beach_id: str, days: int = 7) -> dict:
     end = datetime.utcnow()
     start = end - timedelta(days=days)
 
+    return get_air_quality_for_beach_in_range(
+        beach_id,
+        start.strftime("%Y-%m-%d"),
+        end.strftime("%Y-%m-%d"),
+    )
+
+
+def get_air_quality_for_beach_in_range(beach_id: str, start_date: str, end_date: str) -> dict:
+    geometry = get_beach_buffer(beach_id, buffer_m=3000)
+
     collection = (
         ee.ImageCollection("COPERNICUS/S5P/OFFL/L3_NO2")
         .select("tropospheric_NO2_column_number_density")
-        .filterDate(start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
+        .filterDate(start_date, end_date)
         .filterBounds(geometry)
     )
 

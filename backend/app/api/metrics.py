@@ -7,6 +7,7 @@ from app.services.wqi import calculate_wqi
 from app.services.pollution import calculate_pollution_from_turbidity
 from app.services.crowdedness import get_crowdedness_percent
 from app.services.air_quality import get_air_quality_for_beach
+from app.services.timeseries import get_beach_summary
 
 
 router = APIRouter(
@@ -236,3 +237,17 @@ def get_air_quality(beach_id: str, days: int = 7):
             "air_quality": result["air_quality"]
         }
     }
+
+
+@router.get("/beach-summary")
+def beach_summary(
+    beach_id: str = Query(..., description="Beach identifier (e.g. konyaalti)"),
+    days: int = Query(7, ge=1, le=30),
+):
+    if beach_id not in BEACHES:
+        raise HTTPException(status_code=404, detail="Beach not found")
+
+    try:
+        return get_beach_summary(beach_id=beach_id, days=days)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

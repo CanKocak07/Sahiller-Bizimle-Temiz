@@ -12,6 +12,44 @@ def _date_range(days: int):
     return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
 
 
+def get_turbidity_for_beach_in_range(beach_id: str, start_date: str, end_date: str):
+    geometry = get_beach_buffer(beach_id)
+
+    col = (
+        ee.ImageCollection(S2_COLLECTION)
+        .filterBounds(geometry)
+        .filterDate(start_date, end_date)
+        # keep it a bit loose; SCL mask already helps
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 50))
+        .map(_mask_s2_sr)
+        .map(lambda img: _water_mask_mndwi(img, threshold=0.0))
+        .select(["B4", "B3"])  # Red, Green
+    )
+
+    size = col.size()
+    if size.getInfo() == 0:
+        return None
+
+    img = col.median()
+
+    # NDTI = (Red - Green) / (Red + Green)
+    ndti = img.normalizedDifference(["B4", "B3"]).rename("NDTI")
+
+    stats = ndti.reduceRegion(
+        reducer=ee.Reducer.mean(),
+        geometry=geometry,
+        scale=20,
+        maxPixels=1e9,
+        bestEffort=True,
+    ).getInfo()
+
+    value = stats.get("NDTI")
+    if value is None:
+        return None
+
+    return float(value)
+
+
 def _mask_s2_sr(image: ee.Image) -> ee.Image:
     """
     Sentinel-2 SR cloud mask (SCL based).
@@ -57,40 +95,5 @@ def get_turbidity_for_beach(beach_id: str, days: int = 14):
       - Coastal zones can easily return None due to masking and land-water mixing.
       - This is expected; handle None in API (return no_data instead of 500).
     """
-    geometry = get_beach_buffer(beach_id)
     start_date, end_date = _date_range(days)
-
-    col = (
-        ee.ImageCollection(S2_COLLECTION)
-        .filterBounds(geometry)
-        .filterDate(start_date, end_date)
-        # keep it a bit loose; SCL mask already helps
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 50))
-        .map(_mask_s2_sr)
-        .map(lambda img: _water_mask_mndwi(img, threshold=0.0))
-        .select(["B4", "B3"])  # Red, Green
-    )
-
-    # If collection empty, return None safely
-    size = col.size()
-    if size.getInfo() == 0:
-        return None
-
-    img = col.median()
-
-    # NDTI = (Red - Green) / (Red + Green)
-    ndti = img.normalizedDifference(["B4", "B3"]).rename("NDTI")
-
-    stats = ndti.reduceRegion(
-        reducer=ee.Reducer.mean(),
-        geometry=geometry,
-        scale=20,
-        maxPixels=1e9,
-        bestEffort=True,
-    ).getInfo()
-
-    value = stats.get("NDTI")
-    if value is None:
-        return None
-
-    return float(value)
+    return get_turbidity_for_beach_in_range(beach_id, start_date=start_date, end_date=end_date)

@@ -30,21 +30,13 @@ def normalize_turbidity(ndti: float) -> float:
     return clamp((ndti + 1) / 2)
 
 
-def calculate_wqi(beach_id: str, days: int = 7) -> dict:
-    """
-    Returns:
-    {
-        "wqi": float,
-        "components": {...}
-    }
+def calculate_wqi_from_components(sst: float, chl: float, turb: float) -> dict:
+    """Calculate WQI using whichever components are available.
+
+    Accepts component values which may be None.
+    Returns same shape as calculate_wqi(). Raises ValueError if no components.
     """
 
-    sst = get_sst_for_beach(beach_id, days)
-    chl = get_chlorophyll_for_beach(beach_id, days)
-    turb = get_turbidity_for_beach(beach_id, days)
-
-    # Bazı sahillerde (özellikle kıyı/maske karışımı) chl/turb ara ara None dönebilir.
-    # 500 vermek yerine, eldeki verilerle ağırlıkları yeniden normalize ederek hesaplıyoruz.
     parts: list[tuple[str, float, float]] = []  # (name, weight, normalized)
 
     if sst is not None:
@@ -78,3 +70,19 @@ def calculate_wqi(beach_id: str, days: int = 7) -> dict:
             },
         },
     }
+
+
+def calculate_wqi(beach_id: str, days: int = 7) -> dict:
+    """
+    Returns:
+    {
+        "wqi": float,
+        "components": {...}
+    }
+    """
+
+    sst = get_sst_for_beach(beach_id, days)
+    chl = get_chlorophyll_for_beach(beach_id, days)
+    turb = get_turbidity_for_beach(beach_id, days)
+
+    return calculate_wqi_from_components(sst=sst, chl=chl, turb=turb)
