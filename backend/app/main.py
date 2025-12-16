@@ -9,6 +9,7 @@ Bu dosya:
 
 from fastapi import FastAPI
 from app.config.ee import initialize_earth_engine
+from app.api.metrics import router as metrics_router
 
 app = FastAPI(
     title="Sahiller Bizimle Temiz API",
@@ -23,6 +24,8 @@ def startup_event():
     Earth Engine bağlantısını burada başlatıyoruz.
     """
     initialize_earth_engine()
+
+app.include_router(metrics_router)
 
 @app.get("/health")
 def health_check():
