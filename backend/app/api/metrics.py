@@ -8,6 +8,8 @@ from app.services.pollution import calculate_pollution_from_turbidity
 from app.services.crowdedness import get_crowdedness_percent
 from app.services.air_quality import get_air_quality_for_beach
 from app.services.timeseries import get_beach_summary
+from app.services.summary_cache import CacheEntry, current_window, make_key, get as cache_get, set as cache_set
+from datetime import datetime
 
 
 router = APIRouter(
@@ -247,7 +249,36 @@ def beach_summary(
     if beach_id not in BEACHES:
         raise HTTPException(status_code=404, detail="Beach not found")
 
+    window_start, window_end = current_window()
+    key = make_key("beach-summary", beach_id=beach_id, days=days, window_start=window_start)
+
+    cached = cache_get(key, window_start)
+    if cached is not None:
+        value = cached.value
+        value["cache"] = {
+            "window_start": cached.window_start.isoformat(),
+            "window_end": cached.window_end.isoformat(),
+            "generated_at": cached.generated_at.isoformat(),
+            "hit": True,
+        }
+        return value
+
     try:
-        return get_beach_summary(beach_id=beach_id, days=days)
+        value = get_beach_summary(beach_id=beach_id, days=days)
+        value["cache"] = {
+            "window_start": window_start.isoformat(),
+            "window_end": window_end.isoformat(),
+            "generated_at": datetime.now().isoformat(),
+            "hit": False,
+        }
+
+        entry = CacheEntry(
+            value=value,
+            window_start=window_start,
+            window_end=window_end,
+            generated_at=datetime.now(),
+        )
+        cache_set(key, entry)
+        return value
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

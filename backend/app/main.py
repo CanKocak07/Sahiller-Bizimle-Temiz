@@ -7,11 +7,14 @@ Bu dosya:
 - Temel health-check endpoint sağlar
 """
 
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.ee import initialize_earth_engine
 from app.api.metrics import router as metrics_router
 from app.api.ai import router as ai_router
+from app.services.prewarm import prewarm_loop
 
 app = FastAPI(
     title="Sahiller Bizimle Temiz API",
@@ -40,12 +43,16 @@ app.add_middleware(
 )
 
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
     """
     Uygulama ayağa kalkarken bir kez çalışır.
     Earth Engine bağlantısını burada başlatıyoruz.
     """
     initialize_earth_engine()
+
+    # Prewarm 2-hour cache windows so the whole site updates
+    # automatically on even-hour boundaries.
+    asyncio.create_task(prewarm_loop(days=7))
 
 app.include_router(metrics_router)
 app.include_router(ai_router)

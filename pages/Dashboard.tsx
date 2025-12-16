@@ -9,13 +9,21 @@ import { MapPin } from 'lucide-react';
 const Dashboard: React.FC = () => {
   const [beachData, setBeachData] = useState<BeachData[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const getCurrentBlockStart = () => {
+    const now = new Date();
+    const start = new Date(now);
+    const hour = now.getHours() - (now.getHours() % 2);
+    start.setHours(hour, 0, 0, 0);
+    return start.getTime();
+  };
   
-  // Track the current "data block" (2-hour interval index)
-  const currentBlockRef = useRef<number>(Math.floor(Date.now() / (1000 * 60 * 60 * 2)));
+  // Track the current 2-hour block start (local even-hour boundary)
+  const currentBlockRef = useRef<number>(getCurrentBlockStart());
 
   const fetchData = async () => {
-    // Determine which 2-hour block we are in
-    const newBlock = Math.floor(Date.now() / (1000 * 60 * 60 * 2));
+    // Determine current local even-hour block start
+    const newBlock = getCurrentBlockStart();
 
     // If it's a new block (or initial load), we get new data
     if (newBlock !== currentBlockRef.current || beachData.length === 0) {
@@ -39,7 +47,7 @@ const Dashboard: React.FC = () => {
 
     // Check every minute if we entered a new 2-hour block
     const interval = setInterval(() => {
-        const checkBlock = Math.floor(Date.now() / (1000 * 60 * 60 * 2));
+        const checkBlock = getCurrentBlockStart();
         if (checkBlock !== currentBlockRef.current) {
             setLoading(true); // Optional: show loading state briefly
           setTimeout(() => void fetchData(), 500);
