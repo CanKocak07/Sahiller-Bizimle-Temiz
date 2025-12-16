@@ -167,6 +167,41 @@ const DataCenter: React.FC = () => {
                     <TrendChart data={data.history} metric={selectedMetric} />
                 </div>
 
+                {/* Detail Table */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-slate-800">7 Günlük Detay Tablosu</h3>
+                        <span className="text-xs text-slate-500">Kaynak: Backend günlük seri</span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                            <thead>
+                                <tr className="text-left text-slate-500 border-b">
+                                    <th className="py-2 pr-4 font-medium">Tarih</th>
+                                    <th className="py-2 pr-4 font-medium">Doluluk</th>
+                                    <th className="py-2 pr-4 font-medium">WQI</th>
+                                    <th className="py-2 pr-4 font-medium">Sıcaklık</th>
+                                    <th className="py-2 pr-4 font-medium">Kirlilik</th>
+                                    <th className="py-2 pr-0 font-medium">Hava</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(data.history ?? []).map((r) => (
+                                    <tr key={r.date} className="border-b last:border-b-0 text-slate-700">
+                                        <td className="py-2 pr-4 whitespace-nowrap">{r.date}</td>
+                                        <td className="py-2 pr-4 whitespace-nowrap">{r.occupancy}%</td>
+                                        <td className="py-2 pr-4 whitespace-nowrap">{r.waterQuality}</td>
+                                        <td className="py-2 pr-4 whitespace-nowrap">{r.temperature}°C</td>
+                                        <td className="py-2 pr-4 whitespace-nowrap">{r.pollutionLevel}%</td>
+                                        <td className="py-2 pr-0 whitespace-nowrap">{r.airQuality}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 {/* AI Analysis Section */}
                  <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl border border-indigo-100 shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
