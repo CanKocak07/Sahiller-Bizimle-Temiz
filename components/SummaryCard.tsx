@@ -14,14 +14,16 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
   const [imgSrc, setImgSrc] = useState(data.image);
 
   // Determine status color based on water quality
-  const getQualityColor = (val: number) => {
+  const getQualityColor = (val: number | null) => {
+    if (val == null) return 'bg-slate-100 text-slate-600 border-slate-200';
     if (val >= 90) return 'bg-green-100 text-green-700 border-green-200';
     if (val >= 70) return 'bg-yellow-100 text-yellow-700 border-yellow-200';
     return 'bg-red-100 text-red-700 border-red-200';
   };
 
   // Determine color for pollution (High is bad)
-  const getPollutionColor = (val: number) => {
+  const getPollutionColor = (val: number | null) => {
+    if (val == null) return 'text-slate-600';
     if (val < 30) return 'text-green-600';
     if (val < 60) return 'text-yellow-600';
     return 'text-red-600';
@@ -99,11 +101,11 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
           <span className="text-xs text-slate-500 flex items-center gap-1">
             <Users size={12} /> Doluluk
           </span>
-          <span className="font-semibold text-slate-700">{currentStats.occupancy}%</span>
+          <span className="font-semibold text-slate-700">{currentStats.occupancy == null ? '-' : `${currentStats.occupancy}%`}</span>
           <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
             <div 
               className="bg-teal-500 h-full rounded-full" 
-              style={{ width: `${currentStats.occupancy}%` }}
+              style={{ width: `${currentStats.occupancy ?? 0}%` }}
             />
           </div>
         </div>
@@ -114,7 +116,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
             <Droplets size={12} /> Su Kalitesi
           </span>
            <span className={`text-xs font-bold px-2 py-0.5 rounded-full border w-fit ${getQualityColor(currentStats.waterQuality)}`}>
-            WQI {currentStats.waterQuality}
+            WQI {currentStats.waterQuality == null ? '-' : currentStats.waterQuality}
           </span>
         </div>
 
@@ -123,7 +125,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
           <span className="text-xs text-slate-500 flex items-center gap-1">
              <Thermometer size={12} /> Sıcaklık
           </span>
-          <span className="font-semibold text-slate-700">{currentStats.temperature}°C</span>
+          <span className="font-semibold text-slate-700">{currentStats.temperature == null ? '-' : `${currentStats.temperature}°C`}</span>
         </div>
 
          {/* Pollution Level */}
@@ -132,7 +134,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
              <Trash2 size={12} /> Kirlilik
           </span>
           <span className={`font-semibold ${getPollutionColor(currentStats.pollutionLevel)}`}>
-            {currentStats.pollutionLevel}%
+            {currentStats.pollutionLevel == null ? '-' : `${currentStats.pollutionLevel}%`}
           </span>
         </div>
       </div>

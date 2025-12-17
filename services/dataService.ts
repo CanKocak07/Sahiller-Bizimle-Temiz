@@ -43,25 +43,57 @@ type BeachSummaryResponse = {
 
 async function fetchJSON<T = Json>(path: string): Promise<T> {
   const url = `${API_BASE}${path}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    throw new Error(`HTTP ${res.status} ${res.statusText} - ${url} - ${txt}`);
+
+  const maxAttempts = 3;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        // Retry only on transient server errors.
+        if (res.status >= 500 && attempt < maxAttempts) {
+          await new Promise((r) => setTimeout(r, 250 * attempt));
+          continue;
+        }
+        throw new Error(`HTTP ${res.status} ${res.statusText} - ${url} - ${txt}`);
+      }
+      return res.json() as Promise<T>;
+    } catch (e) {
+      lastError = e;
+      // Retry on network/proxy failures.
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 250 * attempt));
+        continue;
+      }
+    }
   }
-  return res.json() as Promise<T>;
+
+  throw lastError instanceof Error ? lastError : new Error(`Request failed: ${url}`);
 }
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
-function toPercentOrZero(n: number | null | undefined): number {
-  if (n == null || Number.isNaN(n)) return 0;
+function toPercentOrNull(n: number | null | undefined): number | null {
+  if (n == null || Number.isNaN(n)) return null;
   return Math.round(clamp(n, 0, 100));
 }
 
-function no2ToRelativeIndex(no2: number | null | undefined): number {
-  if (no2 == null || Number.isNaN(no2)) return 0;
+function roundToIntOrNull(n: number | null | undefined): number | null {
+  if (n == null || Number.isNaN(n)) return null;
+  return Math.round(n);
+}
+
+function wqiToIndexOrNull(wqi: number | null | undefined): number | null {
+  if (wqi == null || Number.isNaN(wqi)) return null;
+  return Math.round(clamp(wqi, 0, 100));
+}
+
+function no2ToRelativeIndex(no2: number | null | undefined): number | null {
+  if (no2 == null || Number.isNaN(no2)) return null;
 
   // classify_no2 eşiklerini “relative index”e çeviriyoruz.
   // good ~ 20, moderate ~ 50, poor ~ 80 gibi okunabilir bir ölçek.
@@ -73,11 +105,11 @@ function no2ToRelativeIndex(no2: number | null | undefined): number {
 function seriesToEnvironmentalData(series: BeachSummaryResponse['series']): EnvironmentalData[] {
   return (series || []).map((r) => ({
     date: r.date,
-    occupancy: toPercentOrZero(r.crowdedness_percent),
-    waterQuality: r.wqi == null ? 0 : Math.round(clamp(r.wqi, 0, 100)),
+    occupancy: toPercentOrNull(r.crowdedness_percent),
+    waterQuality: wqiToIndexOrNull(r.wqi),
     airQuality: no2ToRelativeIndex(r.no2_mol_m2),
-    temperature: r.sst_celsius == null ? 0 : Math.round(r.sst_celsius),
-    pollutionLevel: toPercentOrZero(r.pollution_percent),
+    temperature: roundToIntOrNull(r.sst_celsius),
+    pollutionLevel: toPercentOrNull(r.pollution_percent),
   }));
 }
 
@@ -93,10 +125,10 @@ export const getBeachData = async (beachId: string, historyDays: number = 7): Pr
   const avg = summary.averages;
 
   const currentStats = {
-    occupancy: toPercentOrZero(avg.crowdedness_percent),
-    waterQuality: avg.wqi == null ? 0 : Math.round(clamp(avg.wqi, 0, 100)),
-    temperature: avg.sst_celsius == null ? 0 : Math.round(avg.sst_celsius),
-    pollutionLevel: toPercentOrZero(avg.pollution_percent),
+    occupancy: toPercentOrNull(avg.crowdedness_percent),
+    waterQuality: wqiToIndexOrNull(avg.wqi),
+    temperature: roundToIntOrNull(avg.sst_celsius),
+    pollutionLevel: toPercentOrNull(avg.pollution_percent),
     airQuality: no2ToRelativeIndex(avg.no2_mol_m2),
   };
 
@@ -110,16 +142,16 @@ export const getBeachData = async (beachId: string, historyDays: number = 7): Pr
 };
 
 export const getAllBeachesData = async (historyDays: number = 7): Promise<BeachData[]> => {
-  const results = await Promise.all(
+  const settled = await Promise.allSettled(
     BEACHES.map(async (beach: any) => {
       const summary = await getBeachSummary(beach.id, historyDays);
       const avg = summary.averages;
 
       const currentStats = {
-        occupancy: toPercentOrZero(avg.crowdedness_percent),
-        waterQuality: avg.wqi == null ? 0 : Math.round(clamp(avg.wqi, 0, 100)),
-        temperature: avg.sst_celsius == null ? 0 : Math.round(avg.sst_celsius),
-        pollutionLevel: toPercentOrZero(avg.pollution_percent),
+        occupancy: toPercentOrNull(avg.crowdedness_percent),
+        waterQuality: wqiToIndexOrNull(avg.wqi),
+        temperature: roundToIntOrNull(avg.sst_celsius),
+        pollutionLevel: toPercentOrNull(avg.pollution_percent),
         airQuality: no2ToRelativeIndex(avg.no2_mol_m2),
       };
 
@@ -129,9 +161,14 @@ export const getAllBeachesData = async (historyDays: number = 7): Promise<BeachD
         ...(beach as any),
         history,
         currentStats,
-      };
+      } as BeachData;
     })
   );
 
+  const results: BeachData[] = [];
+  for (const r of settled) {
+    if (r.status === 'fulfilled') results.push(r.value);
+    else console.error('getAllBeachesData failed:', r.reason);
+  }
   return results;
 };

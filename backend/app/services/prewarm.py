@@ -27,12 +27,22 @@ def _next_even_hour_boundary(now: Optional[datetime] = None) -> datetime:
 async def prewarm_loop(days: int = 7) -> None:
     # Run forever.
     while True:
-        # Prewarm for current window immediately
-        await prewarm_once(days=days)
+        try:
+            # Give the server a brief moment after startup/reload.
+            await asyncio.sleep(0.5)
 
-        # Then sleep until next even-hour boundary and repeat.
-        next_boundary = _next_even_hour_boundary()
-        await asyncio.sleep(_sleep_seconds_until(next_boundary) + 0.05)
+            # Prewarm for current window immediately.
+            await prewarm_once(days=days)
+
+            # Then sleep until next even-hour boundary and repeat.
+            next_boundary = _next_even_hour_boundary()
+            await asyncio.sleep(_sleep_seconds_until(next_boundary) + 0.05)
+        except asyncio.CancelledError:
+            # Graceful shutdown.
+            raise
+        except Exception:
+            # Don't let background loop die.
+            await asyncio.sleep(1.0)
 
 
 async def prewarm_once(days: int = 7) -> None:
@@ -40,7 +50,9 @@ async def prewarm_once(days: int = 7) -> None:
 
     for beach_id in BEACHES.keys():
         try:
-            value = get_beach_summary(beach_id=beach_id, days=days)
+            # Earth Engine calls are blocking; run them in a worker thread so we
+            # don't block the asyncio loop (which would cause proxy connect timeouts).
+            value = await asyncio.to_thread(get_beach_summary, beach_id=beach_id, days=days)
             entry = CacheEntry(
                 value=value,
                 window_start=window_start,
@@ -49,6 +61,8 @@ async def prewarm_once(days: int = 7) -> None:
             )
             key = make_key("beach-summary", beach_id=beach_id, days=days, window_start=window_start)
             cache_set(key, entry)
+            # Small yield to keep event loop responsive even if thread returns quickly.
+            await asyncio.sleep(0)
         except Exception:
             # If one beach fails (no data / transient EE issue), don't stop the loop.
             continue

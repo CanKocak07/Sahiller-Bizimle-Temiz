@@ -23,6 +23,11 @@ function slugifyFileName(name: string): string {
         .replace(/^-|-$/g, '');
 }
 
+function formatMetric(value: number | null | undefined, suffix: string = ''): string {
+    if (value == null || Number.isNaN(value)) return '-';
+    return `${value}${suffix}`;
+}
+
 const DataCenter: React.FC = () => {
   const { search } = useLocation();
   const query = new URLSearchParams(search);
@@ -190,11 +195,11 @@ const DataCenter: React.FC = () => {
                                 {(data.history ?? []).map((r) => (
                                     <tr key={r.date} className="border-b last:border-b-0 text-slate-700">
                                         <td className="py-2 pr-4 whitespace-nowrap">{r.date}</td>
-                                        <td className="py-2 pr-4 whitespace-nowrap">{r.occupancy}%</td>
-                                        <td className="py-2 pr-4 whitespace-nowrap">{r.waterQuality}</td>
-                                        <td className="py-2 pr-4 whitespace-nowrap">{r.temperature}°C</td>
-                                        <td className="py-2 pr-4 whitespace-nowrap">{r.pollutionLevel}%</td>
-                                        <td className="py-2 pr-0 whitespace-nowrap">{r.airQuality}</td>
+                                        <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.occupancy, '%')}</td>
+                                        <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.waterQuality)}</td>
+                                        <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.temperature, '°C')}</td>
+                                        <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.pollutionLevel, '%')}</td>
+                                        <td className="py-2 pr-0 whitespace-nowrap">{formatMetric(r.airQuality)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -264,19 +269,19 @@ const DataCenter: React.FC = () => {
                         </div>
                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                              <span className="text-sm text-slate-600">Doluluk Oranı</span>
-                             <span className="text-sm font-bold text-slate-800">{data.currentStats.occupancy}%</span>
+                                <span className="text-sm font-bold text-slate-800">{formatMetric(data.currentStats.occupancy, '%')}</span>
                         </div>
                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                              <span className="text-sm text-slate-600">Kirlilik Düzeyi</span>
-                             <span className="text-sm font-bold text-violet-600">{data.currentStats.pollutionLevel}%</span>
+                                <span className="text-sm font-bold text-violet-600">{formatMetric(data.currentStats.pollutionLevel, '%')}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                              <span className="text-sm text-slate-600">Su Kalitesi</span>
-                             <span className="text-sm font-bold text-teal-600">{data.currentStats.waterQuality} WQI</span>
+                                <span className="text-sm font-bold text-teal-600">{formatMetric(data.currentStats.waterQuality, ' WQI')}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                              <span className="text-sm text-slate-600">Sıcaklık</span>
-                             <span className="text-sm font-bold text-slate-800">{data.currentStats.temperature}°C</span>
+                                <span className="text-sm font-bold text-slate-800">{formatMetric(data.currentStats.temperature, '°C')}</span>
                         </div>
                      </div>
                 </div>

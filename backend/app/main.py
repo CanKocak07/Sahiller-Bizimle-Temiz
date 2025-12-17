@@ -8,6 +8,7 @@ Bu dosya:
 """
 
 import asyncio
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -52,7 +53,13 @@ async def startup_event():
 
     # Prewarm 2-hour cache windows so the whole site updates
     # automatically on even-hour boundaries.
-    asyncio.create_task(prewarm_loop(days=7))
+    prewarm_enabled = os.getenv("PREWARM_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
+    if prewarm_enabled:
+        try:
+            days = int(os.getenv("PREWARM_DAYS", "7"))
+        except ValueError:
+            days = 7
+        asyncio.create_task(prewarm_loop(days=days))
 
 app.include_router(metrics_router)
 app.include_router(ai_router)

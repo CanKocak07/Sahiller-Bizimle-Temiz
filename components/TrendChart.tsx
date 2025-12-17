@@ -91,7 +91,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
-            tickFormatter={(val) => `${val}${unit}`}
+            tickFormatter={(val) => (typeof val === 'number' ? `${val}${unit}` : '')}
           />
           <Tooltip
             contentStyle={{
@@ -100,7 +100,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
               borderRadius: '8px',
               boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
             }}
-            formatter={(value: number) => [`${value}${unit}`, metric]}
+            formatter={(value: any) => [value == null ? '-' : `${value}${unit}`, metric]}
             labelFormatter={(label) => formatTickDate(label)}
             labelStyle={{ color: '#64748b', marginBottom: '4px' }}
           />

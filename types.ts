@@ -7,11 +7,11 @@ export interface Beach {
 
 export interface EnvironmentalData {
   date: string;
-  occupancy: number; // 0-100%
-  waterQuality: number; // 0-100 (WQI), higher is better
-  airQuality: number; // 0-500 (AQI), lower is better
-  temperature: number; // Celsius
-  pollutionLevel: number; // 0-100%, higher is worse (correlated with occupancy)
+  occupancy: number | null; // 0-100%
+  waterQuality: number | null; // 0-100 (WQI), higher is better
+  airQuality: number | null; // 0-500 (AQI), lower is better
+  temperature: number | null; // Celsius
+  pollutionLevel: number | null; // 0-100%, higher is worse (correlated with occupancy)
 }
 
 export interface BeachData extends Beach {
