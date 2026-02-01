@@ -1,9 +1,20 @@
 import ee
+import os
 from datetime import datetime, timedelta
 from app.utils.geo import get_beach_buffer
 
 
 S2_COLLECTION = "COPERNICUS/S2_SR_HARMONIZED"
+
+_FILL_GAPS_ENABLED = os.getenv("FILL_GAPS_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _parse_ymd(s: str) -> datetime:
+    return datetime.strptime(s, "%Y-%m-%d")
+
+
+def _fmt_ymd(dt: datetime) -> str:
+    return dt.strftime("%Y-%m-%d")
 
 
 def _date_range(days: int):
@@ -28,6 +39,19 @@ def get_turbidity_for_beach_in_range(beach_id: str, start_date: str, end_date: s
 
     size = col.size()
     if size.getInfo() == 0:
+        # Optionally widen the window slightly to reduce "no image in day" gaps.
+        if _FILL_GAPS_ENABLED:
+            try:
+                start = _parse_ymd(start_date)
+                end = _parse_ymd(end_date)
+            except Exception:
+                return None
+
+            # Only try once for the original daily window.
+            if (end - start) <= timedelta(days=1):
+                widened_start = _fmt_ymd(start - timedelta(days=1))
+                widened_end = _fmt_ymd(end + timedelta(days=1))
+                return get_turbidity_for_beach_in_range(beach_id, widened_start, widened_end)
         return None
 
     img = col.median()
@@ -45,6 +69,18 @@ def get_turbidity_for_beach_in_range(beach_id: str, start_date: str, end_date: s
 
     value = stats.get("NDTI")
     if value is None:
+        if _FILL_GAPS_ENABLED:
+            # If masks remove all pixels, try a slightly widened window once.
+            try:
+                start = _parse_ymd(start_date)
+                end = _parse_ymd(end_date)
+            except Exception:
+                return None
+
+            if (end - start) <= timedelta(days=1):
+                widened_start = _fmt_ymd(start - timedelta(days=1))
+                widened_end = _fmt_ymd(end + timedelta(days=1))
+                return get_turbidity_for_beach_in_range(beach_id, widened_start, widened_end)
         return None
 
     return float(value)

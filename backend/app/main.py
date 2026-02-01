@@ -10,6 +10,16 @@ Bu dosya:
 import asyncio
 import os
 
+try:
+    from dotenv import load_dotenv
+
+    # Load local env files if present. Safe in prod (no-op if missing).
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", "..", ".env"), override=False)
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", "..", ".env.local"), override=False)
+except Exception:
+    # dotenv is optional; environment variables may be provided by the host.
+    pass
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.ee import initialize_earth_engine
