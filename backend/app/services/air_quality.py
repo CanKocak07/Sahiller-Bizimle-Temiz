@@ -16,8 +16,6 @@ def classify_no2(no2_value: Optional[float]) -> str:
 
 
 def get_air_quality_for_beach(beach_id: str, days: int = 7) -> dict:
-    geometry = get_beach_buffer(beach_id, buffer_m=3000)
-
     end = datetime.utcnow()
     start = end - timedelta(days=days)
 

@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Query, HTTPException
+import json
+import logging
 from app.services.oisst import get_sst_for_beach
 from app.data.beaches import BEACHES
 from app.services.chlorophyll import get_chlorophyll_for_beach
@@ -16,6 +18,8 @@ router = APIRouter(
     prefix="/api/metrics",
     tags=["metrics"]
 )
+
+logger = logging.getLogger("uvicorn.error")
 
 @router.get("/sst")
 def get_sst(
@@ -245,6 +249,7 @@ def get_air_quality(beach_id: str, days: int = 7):
 def beach_summary(
     beach_id: str = Query(..., description="Beach identifier (e.g. konyaalti)"),
     days: int = Query(7, ge=1, le=30),
+    debug: bool = Query(False, description="If true, logs computed metrics to server console"),
 ):
     if beach_id not in BEACHES:
         raise HTTPException(status_code=404, detail="Beach not found")
@@ -261,6 +266,14 @@ def beach_summary(
             "generated_at": cached.generated_at.isoformat(),
             "hit": True,
         }
+        if debug:
+            logger.info(
+                "[debug] beach-summary cache HIT beach_id=%s days=%s window_start=%s\n%s",
+                beach_id,
+                days,
+                cached.window_start.isoformat(),
+                json.dumps(value, ensure_ascii=False, indent=2),
+            )
         return value
 
     try:
@@ -271,6 +284,15 @@ def beach_summary(
             "generated_at": datetime.now().isoformat(),
             "hit": False,
         }
+
+        if debug:
+            logger.info(
+                "[debug] beach-summary cache MISS beach_id=%s days=%s window_start=%s\n%s",
+                beach_id,
+                days,
+                window_start.isoformat(),
+                json.dumps(value, ensure_ascii=False, indent=2),
+            )
 
         entry = CacheEntry(
             value=value,
