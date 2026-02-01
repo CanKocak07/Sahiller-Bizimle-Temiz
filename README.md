@@ -34,3 +34,44 @@ View your app in AI Studio: https://ai.studio/apps/drive/1N7uEjHVdchM6_Nz9Y4vEKT
   -d '{"beach":{"name":"Konyaaltı","wqi":72,"temperature_c":25,"occupancy":0.4,"pollution_percent":18}}' | cat`
 
 If you run backend on a different port (e.g. `8001`), update both URLs accordingly (and set `VITE_API_BASE_URL`).
+
+## Deploy (Cloud Run - single service)
+
+This project can be deployed as a single Cloud Run service that serves both the frontend and the backend.
+
+```zsh
+gcloud config set project sahiller-bizimle-temiz-481410
+gcloud config set run/region europe-west1
+
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com
+
+# If you want form submissions to persist in Cloud Run, use Firestore:
+gcloud services enable firestore.googleapis.com
+
+gcloud artifacts repositories create sahiller-repo --repository-format=docker --location=europe-west1
+gcloud auth configure-docker europe-west1-docker.pkg.dev
+
+docker build -t europe-west1-docker.pkg.dev/sahiller-bizimle-temiz-481410/sahiller-repo/sahiller:1 .
+docker push europe-west1-docker.pkg.dev/sahiller-bizimle-temiz-481410/sahiller-repo/sahiller:1
+
+gcloud run deploy sahiller \
+   --image europe-west1-docker.pkg.dev/sahiller-bizimle-temiz-481410/sahiller-repo/sahiller:1 \
+   --allow-unauthenticated \
+   --port 8080 \
+   --set-env-vars FORMS_STORAGE=firestore,FIRESTORE_PROJECT=sahiller-bizimle-temiz-481410
+
+# Then set secrets in Cloud Run UI (recommended):
+# - OPENAI_API_KEY
+# - (optional) OPENAI_MODEL
+```
+
+### Forms + Database
+
+- Volunteer and newsletter forms are stored in a SQLite DB by default (local/dev).
+- DB file location (SQLite): `DB_PATH` env (default: `backend/data/app.db`).
+- For Cloud Run, SQLite is not persistent. Use Firestore by setting:
+   - `FORMS_STORAGE=firestore`
+   - (optional) `FIRESTORE_PROJECT=sahiller-bizimle-temiz-481410`
+- API endpoints:
+   - `POST /api/forms/volunteer`
+   - `POST /api/forms/newsletter`

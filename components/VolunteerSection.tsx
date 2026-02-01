@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BEACHES } from '../constants';
 import { User, Mail, Phone, Calendar, MapPin, Send, CheckCircle, Heart, Users, Globe } from 'lucide-react';
+import { submitVolunteerSignup } from '../services/formService';
 
 const VolunteerSection: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -19,14 +20,17 @@ const VolunteerSection: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('submitting');
-    
-    // Simulate API call
-    setTimeout(() => {
+
+    try {
+      await submitVolunteerSignup(formData);
       setStatus('success');
-    }, 1500);
+    } catch (err) {
+      console.error('Volunteer submit failed:', err);
+      setStatus('idle');
+    }
   };
 
   return (

@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
 import { Mail, CheckCircle, ArrowRight } from 'lucide-react';
+import { subscribeNewsletter } from '../services/formService';
 
 const Newsletter: React.FC = () => {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    
+
     setStatus('submitting');
-    // Simulate API call
-    setTimeout(() => {
+
+    try {
+      await subscribeNewsletter(email);
       setStatus('success');
       setEmail('');
-    }, 1500);
+    } catch (err) {
+      console.error('Newsletter subscribe failed:', err);
+      setStatus('idle');
+    }
   };
 
   return (

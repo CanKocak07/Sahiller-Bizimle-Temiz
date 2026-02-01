@@ -9,6 +9,7 @@ Bu dosya:
 
 import asyncio
 import os
+from pathlib import Path
 
 try:
     from dotenv import load_dotenv
@@ -20,11 +21,14 @@ except Exception:
     # dotenv is optional; environment variables may be provided by the host.
     pass
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from app.config.ee import initialize_earth_engine
 from app.api.metrics import router as metrics_router
 from app.api.ai import router as ai_router
+from app.api.forms import router as forms_router
+from app.api.forms import _init_db as init_forms_db
 from app.services.prewarm import prewarm_loop
 
 app = FastAPI(
@@ -61,6 +65,10 @@ async def startup_event():
     """
     initialize_earth_engine()
 
+    # Ensure local DB tables exist for form submissions.
+    # (APIRouter startup hooks may not run in every hosting setup.)
+    init_forms_db()
+
     # Prewarm 2-hour cache windows so the whole site updates
     # automatically on even-hour boundaries.
     prewarm_enabled = os.getenv("PREWARM_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
@@ -73,6 +81,7 @@ async def startup_event():
 
 app.include_router(metrics_router)
 app.include_router(ai_router)
+app.include_router(forms_router)
 
 @app.get("/health")
 def health_check():
@@ -85,3 +94,28 @@ def health_check():
         "service": "backend",
         "earth_engine": "initialized"
     }
+
+# In Cloud Run we can serve the built frontend from backend/static (copied by Dockerfile).
+# IMPORTANT: add this AFTER /api routes, otherwise it would intercept them.
+_static_dir = Path(__file__).resolve().parents[1] / "static"
+_index_html = _static_dir / "index.html"
+if _static_dir.exists() and _index_html.exists():
+    @app.get("/")
+    def web_index():
+        return FileResponse(str(_index_html))
+
+    # SPA + static file handler: serve file if it exists, otherwise fallback to index.html
+    @app.get("/{full_path:path}")
+    def web_fallback(full_path: str):
+        if full_path.startswith("api/") or full_path == "api":
+            raise HTTPException(status_code=404, detail="Not Found")
+
+        candidate = (_static_dir / full_path).resolve()
+        # Prevent path traversal
+        if _static_dir not in candidate.parents and candidate != _static_dir:
+            raise HTTPException(status_code=404, detail="Not Found")
+
+        if candidate.exists() and candidate.is_file():
+            return FileResponse(str(candidate))
+
+        return FileResponse(str(_index_html))
