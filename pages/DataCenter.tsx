@@ -186,7 +186,7 @@ const DataCenter: React.FC = () => {
                                     <th className="py-2 pr-4 font-medium">WQI</th>
                                     <th className="py-2 pr-4 font-medium">Sıcaklık</th>
                                     <th className="py-2 pr-4 font-medium">Kirlilik</th>
-                                    <th className="py-2 pr-0 font-medium">Hava</th>
+                                    <th className="py-2 pr-0 font-medium">Hava Kalitesi</th>
                                 </tr>
                             </thead>
                             <tbody>

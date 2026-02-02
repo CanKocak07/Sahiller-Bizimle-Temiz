@@ -55,6 +55,8 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
       break;
   }
 
+  const axisUnit = metric === MetricType.AIR_QUALITY ? '' : unit;
+
   return (
     <div className="w-full h-[300px] md:h-[400px]">
       <ResponsiveContainer width="100%" height="100%">
@@ -90,7 +92,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
             tickFormatter={(val) => {
               if (typeof val !== 'number') return '';
               const v = isTemperature ? val.toFixed(2) : String(val);
-              return `${v}${unit}`;
+              return `${v}${axisUnit}`;
             }}
           />
           <Tooltip
