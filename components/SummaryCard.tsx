@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BeachData } from '../types';
-import { Wind, Droplets, Thermometer, Trash2, Clock } from 'lucide-react';
+import { Wind, Droplets, Thermometer, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface SummaryCardProps {
@@ -18,14 +18,6 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
     if (val >= 90) return 'bg-green-100 text-green-700 border-green-200';
     if (val >= 70) return 'bg-yellow-100 text-yellow-700 border-yellow-200';
     return 'bg-red-100 text-red-700 border-red-200';
-  };
-
-  // Determine color for pollution (High is bad)
-  const getPollutionColor = (val: number | null) => {
-    if (val == null) return 'text-slate-600';
-    if (val < 30) return 'text-green-600';
-    if (val < 60) return 'text-yellow-600';
-    return 'text-red-600';
   };
 
   const getAirQualityColor = (val: number | null) => {
@@ -101,15 +93,6 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
           </span>
         </div>
 
-         {/* Pollution Level */}
-         <div className="flex flex-col gap-1">
-          <span className="text-xs text-slate-500 flex items-center gap-1">
-             <Trash2 size={12} /> Kirlilik
-          </span>
-          <span className={`font-semibold ${getPollutionColor(currentStats.pollutionLevel)}`}>
-            {currentStats.pollutionLevel == null ? '-' : `${currentStats.pollutionLevel}%`}
-          </span>
-        </div>
       </div>
     </div>
   );

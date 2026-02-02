@@ -31,7 +31,7 @@ View your app in AI Studio: https://ai.studio/apps/drive/1N7uEjHVdchM6_Nz9Y4vEKT
 
 `curl -sS -X POST "http://127.0.0.1:8000/api/ai/beach-report" \
   -H "Content-Type: application/json" \
-   -d '{"beach":{"name":"Konyaaltı","wqi":72,"temperature_c":25,"pollution_percent":18,"no2_mol_m2":0.00004,"air_quality":"moderate"}}' | cat`
+   -d '{"beach":{"name":"Konyaaltı","wqi":72,"temperature_c":25,"no2_mol_m2":0.00004,"air_quality":"moderate"}}' | cat`
 
 If you run backend on a different port (e.g. `8001`), update both URLs accordingly (and set `VITE_API_BASE_URL`).
 

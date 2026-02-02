@@ -17,7 +17,6 @@ type BeachSummaryResponse = {
     date: string;
     sst_celsius: number | null;
     turbidity_ndti: number | null;
-    pollution_percent: number | null;
     chlorophyll: number | null;
     no2_mol_m2: number | null;
     air_quality: string | null;
@@ -26,7 +25,6 @@ type BeachSummaryResponse = {
   averages: {
     sst_celsius: number | null;
     turbidity_ndti: number | null;
-    pollution_percent: number | null;
     chlorophyll: number | null;
     no2_mol_m2: number | null;
     wqi: number | null;
@@ -126,11 +124,6 @@ function roundTo(n: number, digits: number): number {
   return Math.round(n * p) / p;
 }
 
-function toPercentOrNull(n: number | null | undefined): number | null {
-  if (n == null || Number.isNaN(n)) return null;
-  return Math.round(clamp(n, 0, 100));
-}
-
 function roundToIntOrNull(n: number | null | undefined): number | null {
   if (n == null || Number.isNaN(n)) return null;
   return Math.round(n);
@@ -175,17 +168,6 @@ function fluctuateWqiSeeded(rng: () => number, base: number | null): number | nu
   return Math.round(jitterAroundSeeded(rng, base, 5, 0, 100));
 }
 
-function fluctuatePollutionPercent(base: number | null): number | null {
-  if (base == null) return null;
-  // Pollution: spread within ±5 percentage points
-  return Math.round(jitterAround(base, 5, 0, 100));
-}
-
-function fluctuatePollutionPercentSeeded(rng: () => number, base: number | null): number | null {
-  if (base == null) return null;
-  return Math.round(jitterAroundSeeded(rng, base, 5, 0, 100));
-}
-
 function fluctuateAirQualityFromClass(cls: AirClass | null): number | null {
   if (cls == null) return null;
   // good -> 90-100, moderate -> 80-90, poor -> 70-80
@@ -211,13 +193,11 @@ function meanOrNull(values: Array<number | null | undefined>): number | null {
 function seriesToEnvironmentalData(series: BeachSummaryResponse['series'], seedBase: string): EnvironmentalData[] {
   return (series || []).map((r) => {
     const wqiBase = wqiToIndexOrNull(r.wqi);
-    const pollutionBase = toPercentOrNull(r.pollution_percent);
     const airClass = classifyNo2(r.no2_mol_m2);
 
     // Deterministic per window + day + metric so values don't change on page refresh.
     const seedPrefix = `${seedBase}|${r.date}|`;
     const wqiRng = makeSeededRng(`${seedPrefix}wqi`);
-    const pollutionRng = makeSeededRng(`${seedPrefix}pollution`);
     const airRng = makeSeededRng(`${seedPrefix}air`);
     const tempRng = makeSeededRng(`${seedPrefix}temp`);
 
@@ -226,7 +206,6 @@ function seriesToEnvironmentalData(series: BeachSummaryResponse['series'], seedB
       waterQuality: fluctuateWqiSeeded(wqiRng, wqiBase),
       airQuality: fluctuateAirQualityFromClassSeeded(airRng, airClass),
       temperature: toTemperature2dpOrNullSeeded(tempRng, r.sst_celsius),
-      pollutionLevel: fluctuatePollutionPercentSeeded(pollutionRng, pollutionBase),
     };
   });
 }
@@ -260,10 +239,6 @@ export const getBeachData = async (beachId: string, historyDays: number = 7): Pr
       const m = meanOrNull(history.map((h) => h.temperature));
       return m == null ? null : roundTo(m, 2);
     })(),
-    pollutionLevel: (() => {
-      const m = meanOrNull(history.map((h) => h.pollutionLevel));
-      return m == null ? null : Math.round(clamp(m, 0, 100));
-    })(),
   };
 
   return {
@@ -294,10 +269,6 @@ export const getAllBeachesData = async (historyDays: number = 7): Promise<BeachD
         temperature: (() => {
           const m = meanOrNull(history.map((h) => h.temperature));
           return m == null ? null : roundTo(m, 2);
-        })(),
-        pollutionLevel: (() => {
-          const m = meanOrNull(history.map((h) => h.pollutionLevel));
-          return m == null ? null : Math.round(clamp(m, 0, 100));
         })(),
       };
 

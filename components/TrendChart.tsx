@@ -38,11 +38,6 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
       color = '#0d9488'; // teal
       unit = ' WQI';
       break;
-    case MetricType.POLLUTION:
-      dataKey = 'pollutionLevel';
-      color = '#8b5cf6'; // violet
-      unit = '%';
-      break;
     case MetricType.AIR_QUALITY:
       dataKey = 'airQuality';
       color = '#f59e0b'; // amber

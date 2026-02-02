@@ -83,7 +83,6 @@ const DataCenter: React.FC = () => {
             'water_quality_wqi',
             'air_quality_index',
             'temperature_c',
-            'pollution_percent',
         ];
 
         const csvLines = [
@@ -94,7 +93,6 @@ const DataCenter: React.FC = () => {
                     toCsvValue(r.waterQuality),
                     toCsvValue(r.airQuality),
                     toCsvValue(r.temperature),
-                    toCsvValue(r.pollutionLevel),
                 ].join(',')
             ),
         ];
@@ -185,7 +183,6 @@ const DataCenter: React.FC = () => {
                                     <th className="py-2 pr-4 font-medium">Tarih</th>
                                     <th className="py-2 pr-4 font-medium">WQI</th>
                                     <th className="py-2 pr-4 font-medium">Sıcaklık</th>
-                                    <th className="py-2 pr-4 font-medium">Kirlilik</th>
                                     <th className="py-2 pr-0 font-medium">Hava Kalitesi</th>
                                 </tr>
                             </thead>
@@ -195,7 +192,6 @@ const DataCenter: React.FC = () => {
                                         <td className="py-2 pr-4 whitespace-nowrap">{r.date}</td>
                                         <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.waterQuality)}</td>
                                         <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.temperature, '°C')}</td>
-                                        <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.pollutionLevel, '%')}</td>
                                         <td className="py-2 pr-0 whitespace-nowrap">{formatMetric(r.airQuality)}</td>
                                     </tr>
                                 ))}
@@ -279,10 +275,6 @@ const DataCenter: React.FC = () => {
                                                      >
                                                          {formatMetric(data.currentStats.airQuality)}
                                                      </span>
-                        </div>
-                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                             <span className="text-sm text-slate-600">Kirlilik Düzeyi</span>
-                                <span className="text-sm font-bold text-violet-600">{formatMetric(data.currentStats.pollutionLevel, '%')}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                              <span className="text-sm text-slate-600">Su Kalitesi</span>

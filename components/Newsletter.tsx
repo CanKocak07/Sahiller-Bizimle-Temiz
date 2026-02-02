@@ -36,7 +36,7 @@ const Newsletter: React.FC = () => {
           
           <h2 className="text-3xl font-bold text-white mb-4">Gelişmelerden Haberdar Olun</h2>
           <p className="text-slate-400 mb-8 leading-relaxed">
-            Antalya sahillerindeki kirlilik raporları, yaklaşan temizlik etkinlikleri ve Caretta Caretta yuvalama dönemleri hakkında haftalık bültenimize abone olun.
+            Antalya sahillerindeki çevresel raporlar, yaklaşan temizlik etkinlikleri ve Caretta Caretta yuvalama dönemleri hakkında haftalık bültenimize abone olun.
           </p>
 
           {status === 'success' ? (

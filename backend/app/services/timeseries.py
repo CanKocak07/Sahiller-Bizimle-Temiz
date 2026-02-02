@@ -9,7 +9,6 @@ from app.data.beaches import BEACHES
 from app.services.air_quality import get_air_quality_for_beach_in_range
 from app.services.chlorophyll import get_chlorophyll_for_beach_in_range
 from app.services.oisst import get_sst_for_beach_in_range
-from app.services.pollution import calculate_pollution_from_turbidity
 from app.services.turbidity import get_turbidity_for_beach_in_range
 from app.services.wqi import calculate_wqi_from_components
 
@@ -103,7 +102,6 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
         filled_no2.append(no2)
 
         # Derived metrics are computed from filled base metrics.
-        pollution_percent = calculate_pollution_from_turbidity(turb)
         air_quality = air.get("air_quality")
         if no2 is not None:
             air_quality = air.get("air_quality") or "unknown"
@@ -126,7 +124,6 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
                 "date": d.isoformat(),
                 "sst_celsius": None if sst is None else round(float(sst), 2),
                 "turbidity_ndti": None if turb is None else round(float(turb), 4),
-                "pollution_percent": None if pollution_percent is None else round(float(pollution_percent), 1),
                 "chlorophyll": None if chl is None else round(float(chl), 4),
                 "no2_mol_m2": None if no2 is None else float(no2),
                 "air_quality": air_quality,
@@ -140,7 +137,6 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
     averages = {
         "sst_celsius": (lambda v: None if v is None else round(v, 2))(_mean([r["sst_celsius"] for r in series])),
         "turbidity_ndti": (lambda v: None if v is None else round(v, 4))(_mean([r["turbidity_ndti"] for r in series])),
-        "pollution_percent": (lambda v: None if v is None else round(v, 1))(_mean([r["pollution_percent"] for r in series])),
         "chlorophyll": (lambda v: None if v is None else round(v, 4))(_mean([r["chlorophyll"] for r in series])),
         "no2_mol_m2": _mean([r["no2_mol_m2"] for r in series]),
         "wqi": (lambda v: None if v is None else round(v, 1))(_mean([r["wqi"] for r in series])),
