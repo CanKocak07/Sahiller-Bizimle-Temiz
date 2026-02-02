@@ -28,6 +28,13 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
     return 'text-red-600';
   };
 
+  const getAirQualityColor = (val: number | null) => {
+    if (val == null) return { text: 'text-slate-700', bar: 'bg-slate-300' };
+    if (val >= 90) return { text: 'text-green-700', bar: 'bg-green-500' };
+    if (val >= 80) return { text: 'text-amber-700', bar: 'bg-amber-500' };
+    return { text: 'text-red-700', bar: 'bg-red-500' };
+  };
+
   // Refresh cadence is 5 days (cache window) to reduce backend/EE load.
 
   return (
@@ -63,10 +70,12 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
           <span className="text-xs text-slate-500 flex items-center gap-1">
             <Wind size={12} /> Hava Kalitesi
           </span>
-          <span className="font-semibold text-slate-700">{currentStats.airQuality == null ? '-' : currentStats.airQuality}</span>
+          <span className={`font-semibold ${getAirQualityColor(currentStats.airQuality).text}`}>
+            {currentStats.airQuality == null ? '-' : currentStats.airQuality}
+          </span>
           <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
             <div 
-              className="bg-amber-500 h-full rounded-full" 
+              className={`${getAirQualityColor(currentStats.airQuality).bar} h-full rounded-full`} 
               style={{ width: `${Math.min(100, currentStats.airQuality ?? 0)}%` }}
             />
           </div>

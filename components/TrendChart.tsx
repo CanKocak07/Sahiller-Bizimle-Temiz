@@ -56,6 +56,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
   }
 
   const axisUnit = metric === MetricType.AIR_QUALITY ? '' : unit;
+  const tooltipUnit = axisUnit;
 
   return (
     <div className="w-full h-[300px] md:h-[400px]">
@@ -105,7 +106,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
             formatter={(value: any) => {
               if (value == null) return ['-', metric];
               const v = typeof value === 'number' && isTemperature ? value.toFixed(2) : String(value);
-              return [`${v}${unit}`, metric];
+              return [`${v}${tooltipUnit}`, metric];
             }}
             labelFormatter={(label) => formatTickDate(label)}
             labelStyle={{ color: '#64748b', marginBottom: '4px' }}

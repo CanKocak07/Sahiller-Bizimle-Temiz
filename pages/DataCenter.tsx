@@ -266,7 +266,19 @@ const DataCenter: React.FC = () => {
                         </div>
                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                              <span className="text-sm text-slate-600">Hava Kalitesi</span>
-                            <span className="text-sm font-bold text-amber-600">{formatMetric(data.currentStats.airQuality)}</span>
+                                                     <span
+                                                         className={`text-sm font-bold ${
+                                                             data.currentStats.airQuality == null
+                                                                 ? 'text-slate-600'
+                                                                 : data.currentStats.airQuality >= 90
+                                                                     ? 'text-green-600'
+                                                                     : data.currentStats.airQuality >= 80
+                                                                         ? 'text-amber-600'
+                                                                         : 'text-red-600'
+                                                         }`}
+                                                     >
+                                                         {formatMetric(data.currentStats.airQuality)}
+                                                     </span>
                         </div>
                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                              <span className="text-sm text-slate-600">Kirlilik Düzeyi</span>
