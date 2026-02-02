@@ -69,8 +69,8 @@ async def startup_event():
     # (APIRouter startup hooks may not run in every hosting setup.)
     init_forms_db()
 
-    # Prewarm 2-hour cache windows so the whole site updates
-    # automatically on even-hour boundaries.
+    # Prewarm cache windows so the whole site updates automatically.
+    # Cache windows default to 5 days (see CACHE_WINDOW_DAYS).
     prewarm_enabled = os.getenv("PREWARM_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
     if prewarm_enabled:
         try:

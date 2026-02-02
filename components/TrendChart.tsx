@@ -30,6 +30,7 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
   let dataKey: keyof EnvironmentalData = 'waterQuality';
   let color = '#0d9488'; // teal
   let unit = ' WQI';
+  const isTemperature = metric === MetricType.TEMPERATURE;
 
   switch (metric) {
     case MetricType.WATER_QUALITY:
@@ -86,7 +87,11 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
             fontSize={12} 
             tickLine={false} 
             axisLine={false}
-            tickFormatter={(val) => (typeof val === 'number' ? `${val}${unit}` : '')}
+            tickFormatter={(val) => {
+              if (typeof val !== 'number') return '';
+              const v = isTemperature ? val.toFixed(2) : String(val);
+              return `${v}${unit}`;
+            }}
           />
           <Tooltip
             contentStyle={{
@@ -95,7 +100,11 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
               borderRadius: '8px',
               boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
             }}
-            formatter={(value: any) => [value == null ? '-' : `${value}${unit}`, metric]}
+            formatter={(value: any) => {
+              if (value == null) return ['-', metric];
+              const v = typeof value === 'number' && isTemperature ? value.toFixed(2) : String(value);
+              return [`${v}${unit}`, metric];
+            }}
             labelFormatter={(label) => formatTickDate(label)}
             labelStyle={{ color: '#64748b', marginBottom: '4px' }}
           />

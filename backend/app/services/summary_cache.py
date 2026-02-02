@@ -2,22 +2,40 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+import os
 from threading import Lock
 from typing import Any, Dict, Optional, Tuple
 
 
-def _floor_to_even_hour(dt: datetime) -> datetime:
-    # Align to the most recent even hour boundary in local server time.
-    hour = dt.hour - (dt.hour % 2)
-    return dt.replace(hour=hour, minute=0, second=0, microsecond=0)
+_DEFAULT_WINDOW_DAYS = 5
+_EPOCH = datetime(1970, 1, 1)
 
 
-def _next_even_hour(dt: datetime) -> datetime:
-    start = _floor_to_even_hour(dt)
-    if start == dt.replace(minute=0, second=0, microsecond=0) and dt.hour % 2 == 0:
-        # Already exactly on an even hour boundary.
-        return start + timedelta(hours=2)
-    return start + timedelta(hours=2)
+def _window_days() -> int:
+    """Cache window size in days.
+
+    Defaults to 5 days to reduce Earth Engine load. Can be overridden via
+    CACHE_WINDOW_DAYS.
+    """
+
+    raw = os.getenv("CACHE_WINDOW_DAYS", str(_DEFAULT_WINDOW_DAYS)).strip()
+    try:
+        return max(1, int(raw))
+    except Exception:
+        return _DEFAULT_WINDOW_DAYS
+
+
+def _floor_to_window_start(dt: datetime) -> datetime:
+    """Align to the start of the current N-day window.
+
+    Uses UTC wall-clock (naive datetime treated as UTC) to avoid DST edge cases.
+    """
+
+    window_days = _window_days()
+    total_days = (dt - _EPOCH).days
+    start_days = total_days - (total_days % window_days)
+    start = _EPOCH + timedelta(days=start_days)
+    return start.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 @dataclass
@@ -37,9 +55,9 @@ def make_key(prefix: str, beach_id: str, days: int, window_start: datetime) -> s
 
 
 def current_window(now: Optional[datetime] = None) -> Tuple[datetime, datetime]:
-    now = now or datetime.now()
-    start = _floor_to_even_hour(now)
-    end = start + timedelta(hours=2)
+    now = now or datetime.utcnow()
+    start = _floor_to_window_start(now)
+    end = start + timedelta(days=_window_days())
     return start, end
 
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BeachData } from '../types';
-import { Wind, Droplets, Thermometer, Trash2, RefreshCw, Clock } from 'lucide-react';
+import { Wind, Droplets, Thermometer, Trash2, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface SummaryCardProps {
@@ -10,7 +10,6 @@ interface SummaryCardProps {
 const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
   const navigate = useNavigate();
   const { currentStats } = data;
-  const [timeLeft, setTimeLeft] = useState<string>('');
   const [imgSrc, setImgSrc] = useState(data.image);
 
   // Determine status color based on water quality
@@ -29,43 +28,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
     return 'text-red-600';
   };
 
-  // Countdown logic: Targets the next even hour (e.g., 12:00, 14:00, 16:00)
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const now = new Date();
-      const target = new Date(now);
-      
-      // Find next even hour
-      const currentHour = now.getHours();
-      const nextEvenHour = currentHour + (2 - (currentHour % 2));
-      
-      target.setHours(nextEvenHour, 0, 0, 0);
-      
-      // Handle day rollover if needed (though setHours usually handles it, explicit is safer for logic)
-      if (target.getTime() <= now.getTime()) {
-         target.setHours(target.getHours() + 2);
-      }
-
-      const diff = target.getTime() - now.getTime();
-      
-      if (diff <= 0) return "00:00:00";
-
-      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      const minutes = Math.floor((diff / (1000 * 60)) % 60);
-      const seconds = Math.floor((diff / 1000) % 60);
-
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    };
-
-    // Initial set
-    setTimeLeft(calculateTimeLeft());
-
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
+  // Refresh cadence is 5 days (cache window) to reduce backend/EE load.
 
   return (
     <div 
@@ -81,16 +44,15 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
           className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" 
         />
         
-        {/* Next Update Countdown Badge */}
+        {/* Update Cadence Badge */}
         <div className="absolute top-0 right-0 z-20 bg-slate-900/80 backdrop-blur-sm text-white text-xs font-mono py-1 px-2 rounded-bl-lg flex items-center gap-1.5 border-l border-b border-white/10">
-            <RefreshCw size={10} className="animate-spin-slow" style={{ animationDuration: '3s' }} />
-            <span>Yenileme: {timeLeft}</span>
+          <span>Güncelleme: 5 gün</span>
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent z-20">
           <h3 className="text-white font-bold text-lg leading-tight">{data.name}</h3>
           <p className="text-white/80 text-xs flex items-center gap-1 mt-0.5">
-            <Clock size={10} /> Canlı Takip
+            <Clock size={10} /> 5 günde bir güncellenir
           </p>
         </div>
       </div>
@@ -125,7 +87,9 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
           <span className="text-xs text-slate-500 flex items-center gap-1">
              <Thermometer size={12} /> Sıcaklık
           </span>
-          <span className="font-semibold text-slate-700">{currentStats.temperature == null ? '-' : `${currentStats.temperature}°C`}</span>
+          <span className="font-semibold text-slate-700">
+            {currentStats.temperature == null ? '-' : `${currentStats.temperature.toFixed(2)}°C`}
+          </span>
         </div>
 
          {/* Pollution Level */}

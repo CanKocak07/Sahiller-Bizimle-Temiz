@@ -248,7 +248,7 @@ def beach_summary(
         value["cache"] = {
             "window_start": window_start.isoformat(),
             "window_end": window_end.isoformat(),
-            "generated_at": datetime.now().isoformat(),
+            "generated_at": datetime.utcnow().isoformat(),
             "hit": False,
         }
 
@@ -265,7 +265,7 @@ def beach_summary(
             value=value,
             window_start=window_start,
             window_end=window_end,
-            generated_at=datetime.now(),
+            generated_at=datetime.utcnow(),
         )
         cache_set(key, entry)
         return value

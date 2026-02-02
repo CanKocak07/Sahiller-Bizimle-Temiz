@@ -25,7 +25,8 @@ function slugifyFileName(name: string): string {
 
 function formatMetric(value: number | null | undefined, suffix: string = ''): string {
     if (value == null || Number.isNaN(value)) return '-';
-    return `${value}${suffix}`;
+    const formatted = suffix.includes('°C') ? value.toFixed(2) : String(value);
+    return `${formatted}${suffix}`;
 }
 
 const DataCenter: React.FC = () => {
@@ -163,7 +164,7 @@ const DataCenter: React.FC = () => {
                             <h2 className="text-lg font-semibold text-slate-800">7 Günlük {selectedMetric} Eğilimi</h2>
                         </div>
                         <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                            Son Güncelleme: {new Date().toLocaleTimeString('tr-TR')}
+                            Güncelleme periyodu: 5 gün
                         </span>
                     </div>
                     

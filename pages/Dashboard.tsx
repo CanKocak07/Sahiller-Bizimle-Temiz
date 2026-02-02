@@ -10,24 +10,27 @@ const Dashboard: React.FC = () => {
   const [beachData, setBeachData] = useState<BeachData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const getCurrentBlockStart = () => {
+  const WINDOW_DAYS = 5;
+
+  const getCurrentWindowStart = () => {
+    // 5-day windows aligned to UTC midnight to avoid DST edge cases.
     const now = new Date();
-    const start = new Date(now);
-    const hour = now.getHours() - (now.getHours() % 2);
-    start.setHours(hour, 0, 0, 0);
-    return start.getTime();
+    const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const dayIndex = Math.floor(utcMidnight / 86400000);
+    const windowStartDay = dayIndex - (dayIndex % WINDOW_DAYS);
+    return windowStartDay * 86400000;
   };
-  
-  // Track the current 2-hour block start (local even-hour boundary)
-  const currentBlockRef = useRef<number>(getCurrentBlockStart());
+
+  // Track the current 5-day window start (UTC midnight aligned)
+  const currentWindowRef = useRef<number>(getCurrentWindowStart());
 
   const fetchData = async () => {
-    // Determine current local even-hour block start
-    const newBlock = getCurrentBlockStart();
+    // Determine current window start
+    const newWindow = getCurrentWindowStart();
 
     // If it's a new block (or initial load), we get new data
-    if (newBlock !== currentBlockRef.current || beachData.length === 0) {
-      currentBlockRef.current = newBlock;
+    if (newWindow !== currentWindowRef.current || beachData.length === 0) {
+      currentWindowRef.current = newWindow;
       try {
         const all = await getAllBeachesData();
         setBeachData(all);
@@ -45,14 +48,14 @@ const Dashboard: React.FC = () => {
       void fetchData();
     }, 800);
 
-    // Check every minute if we entered a new 2-hour block
+    // Periodically check whether we entered a new 5-day window.
     const interval = setInterval(() => {
-        const checkBlock = getCurrentBlockStart();
-        if (checkBlock !== currentBlockRef.current) {
-            setLoading(true); // Optional: show loading state briefly
-          setTimeout(() => void fetchData(), 500);
-        }
-    }, 60000);
+      const checkWindow = getCurrentWindowStart();
+      if (checkWindow !== currentWindowRef.current) {
+        setLoading(true);
+        setTimeout(() => void fetchData(), 500);
+      }
+    }, 60 * 60 * 1000);
 
     return () => {
         clearTimeout(timer);
@@ -72,12 +75,12 @@ const Dashboard: React.FC = () => {
             Antalya Sahilleri, <span className="text-teal-300">Mercek Altında.</span>
           </h1>
           <p className="text-lg md:text-xl text-slate-200 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Akdeniz'in en değerli plajlarında kalabalık oranları, su temizliği ve çevre sağlığının gerçek zamanlı takibi.
+            Akdeniz'in en değerli plajlarında su temizliği ve çevre sağlığının 5 günde bir güncellenen takibi.
           </p>
           <div className="flex justify-center gap-4">
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-               <span className="text-sm font-medium">Canlı Güncelleme</span>
+              <span className="text-sm font-medium">5 Günde Bir Güncelleme</span>
             </div>
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
                <MapPin size={16} className="text-teal-300" />
@@ -114,8 +117,8 @@ const Dashboard: React.FC = () => {
                 <div className="w-12 h-12 bg-teal-100 text-teal-600 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <MapPin />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Kalabalık Kontrolü</h3>
-                <p className="text-slate-600 text-sm">Karmaşadan uzak durun. Gerçek zamanlı yoğunluk haritası ile aileniz için en sakin noktayı bulun.</p>
+                <h3 className="font-semibold text-lg mb-2">Hava Kalitesi</h3>
+                <p className="text-slate-600 text-sm">Sahil çevresindeki hava kalitesini takip edin ve planınızı daha bilinçli yapın.</p>
               </div>
               <div className="p-6 bg-slate-50 rounded-2xl">
                 <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
