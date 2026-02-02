@@ -10,6 +10,7 @@ export interface EnvironmentalData {
   waterQuality: number | null; // 0-100 (WQI), higher is better
   airQuality: number | null; // relative index (lower is better)
   temperature: number | null; // Celsius
+  wasteRisk: number | null; // 0-100%, higher is worse
 }
 
 export interface BeachData extends Beach {
@@ -20,5 +21,6 @@ export interface BeachData extends Beach {
 export enum MetricType {
   WATER_QUALITY = 'Su Kalitesi',
   AIR_QUALITY = 'Hava Kalitesi',
-  TEMPERATURE = 'Sıcaklık'
+  TEMPERATURE = 'Sıcaklık',
+  WASTE_RISK = 'Atık Birikme Riski'
 }

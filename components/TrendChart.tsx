@@ -48,6 +48,11 @@ const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
       color = '#ef4444'; // red
       unit = '°C';
       break;
+    case MetricType.WASTE_RISK:
+      dataKey = 'wasteRisk';
+      color = '#8b5cf6'; // violet
+      unit = '%';
+      break;
   }
 
   const axisUnit = metric === MetricType.AIR_QUALITY ? '' : unit;

@@ -83,6 +83,7 @@ const DataCenter: React.FC = () => {
             'water_quality_wqi',
             'air_quality_index',
             'temperature_c',
+            'waste_risk_percent',
         ];
 
         const csvLines = [
@@ -93,6 +94,7 @@ const DataCenter: React.FC = () => {
                     toCsvValue(r.waterQuality),
                     toCsvValue(r.airQuality),
                     toCsvValue(r.temperature),
+                    toCsvValue(r.wasteRisk),
                 ].join(',')
             ),
         ];
@@ -125,25 +127,28 @@ const DataCenter: React.FC = () => {
                     <h1 className="text-2xl font-bold text-slate-800">Veri Merkezi</h1>
                     <p className="text-slate-500 text-sm">Tarihsel eğilimler ve analizler</p>
                 </div>
-                
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                     <select
                         value={selectedBeachId}
                         onChange={(e) => setSelectedBeachId(e.target.value)}
                         className="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-teal-500 focus:border-teal-500 block w-full p-2.5"
                     >
-                        {BEACHES.map(b => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
+                        {BEACHES.map((b) => (
+                            <option key={b.id} value={b.id}>
+                                {b.name}
+                            </option>
                         ))}
                     </select>
 
-                     <select
+                    <select
                         value={selectedMetric}
                         onChange={(e) => setSelectedMetric(e.target.value as MetricType)}
                         className="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-teal-500 focus:border-teal-500 block w-full p-2.5"
                     >
-                        {Object.values(MetricType).map(m => (
-                            <option key={m} value={m}>{m}</option>
+                        {Object.values(MetricType).map((m) => (
+                            <option key={m} value={m}>
+                                {m}
+                            </option>
                         ))}
                     </select>
                 </div>
@@ -177,22 +182,24 @@ const DataCenter: React.FC = () => {
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm">
+                        <table className="min-w-full text-sm tabular-nums">
                             <thead>
-                                <tr className="text-left text-slate-500 border-b">
-                                    <th className="py-2 pr-4 font-medium">Tarih</th>
-                                    <th className="py-2 pr-4 font-medium">WQI</th>
-                                    <th className="py-2 pr-4 font-medium">Sıcaklık</th>
-                                    <th className="py-2 pr-0 font-medium">Hava Kalitesi</th>
+                                <tr className="text-slate-500 border-b">
+                                    <th className="py-2 pr-4 font-medium text-left whitespace-nowrap">Tarih</th>
+                                    <th className="py-2 px-4 font-medium text-center whitespace-nowrap">WQI</th>
+                                    <th className="py-2 px-4 font-medium text-center whitespace-nowrap">Sıcaklık</th>
+                                    <th className="py-2 px-4 font-medium text-center whitespace-nowrap">Atık Birikme Riski</th>
+                                    <th className="py-2 pl-4 font-medium text-center whitespace-nowrap">Hava Kalitesi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {(data.history ?? []).map((r) => (
                                     <tr key={r.date} className="border-b last:border-b-0 text-slate-700">
-                                        <td className="py-2 pr-4 whitespace-nowrap">{r.date}</td>
-                                        <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.waterQuality)}</td>
-                                        <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.temperature, '°C')}</td>
-                                        <td className="py-2 pr-0 whitespace-nowrap">{formatMetric(r.airQuality)}</td>
+                                        <td className="py-2 pr-4 text-left whitespace-nowrap">{r.date}</td>
+                                        <td className="py-2 px-4 text-center whitespace-nowrap">{formatMetric(r.waterQuality)}</td>
+                                        <td className="py-2 px-4 text-center whitespace-nowrap">{formatMetric(r.temperature, '°C')}</td>
+                                        <td className="py-2 px-4 text-center whitespace-nowrap">{formatMetric(r.wasteRisk, '%')}</td>
+                                        <td className="py-2 pl-4 text-center whitespace-nowrap">{formatMetric(r.airQuality)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -266,11 +273,9 @@ const DataCenter: React.FC = () => {
                                                          className={`text-sm font-bold ${
                                                              data.currentStats.airQuality == null
                                                                  ? 'text-slate-600'
-                                                                 : data.currentStats.airQuality >= 90
+                                                                 : data.currentStats.airQuality >= 80
                                                                      ? 'text-green-600'
-                                                                     : data.currentStats.airQuality >= 80
-                                                                         ? 'text-amber-600'
-                                                                         : 'text-red-600'
+                                                                     : 'text-red-600'
                                                          }`}
                                                      >
                                                          {formatMetric(data.currentStats.airQuality)}
@@ -279,6 +284,22 @@ const DataCenter: React.FC = () => {
                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                              <span className="text-sm text-slate-600">Su Kalitesi</span>
                                 <span className="text-sm font-bold text-teal-600">{formatMetric(data.currentStats.waterQuality, ' WQI')}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                             <span className="text-sm text-slate-600">Atık Birikme Riski</span>
+                             <span
+                                 className={`text-sm font-bold ${
+                                     data.currentStats.wasteRisk == null
+                                         ? 'text-slate-600'
+                                         : data.currentStats.wasteRisk >= 70
+                                             ? 'text-red-600'
+                                             : data.currentStats.wasteRisk >= 40
+                                                 ? 'text-amber-600'
+                                                 : 'text-green-600'
+                                 }`}
+                             >
+                                 {formatMetric(data.currentStats.wasteRisk, '%')}
+                             </span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                              <span className="text-sm text-slate-600">Sıcaklık</span>

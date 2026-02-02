@@ -7,6 +7,7 @@ from app.services.chlorophyll import get_chlorophyll_for_beach
 from app.services.turbidity import get_turbidity_for_beach
 from app.services.wqi import calculate_wqi
 from app.services.air_quality import get_air_quality_for_beach
+from app.services.waste_risk import get_waste_risk_for_beach
 from app.services.timeseries import get_beach_summary
 from app.services.summary_cache import CacheEntry, current_window, make_key, get as cache_get, set as cache_set
 from datetime import datetime
@@ -180,6 +181,40 @@ def get_air_quality(beach_id: str, days: int = 7):
             "no2_mol_m2": result["no2"],
             "air_quality": result["air_quality"]
         }
+    }
+
+
+@router.get("/waste-risk")
+def get_waste_risk(
+    beach_id: str = Query(..., description="Beach identifier (e.g. konyaalti)"),
+    days: int = Query(30, ge=1, le=90),
+):
+    if beach_id not in BEACHES:
+        raise HTTPException(status_code=404, detail="Beach not found")
+
+    result = get_waste_risk_for_beach(beach_id, days=days)
+    if result is None:
+        return {
+            "metric": "waste_accumulation_risk",
+            "unit": "percent",
+            "days": days,
+            "data": {
+                "id": beach_id,
+                "name": BEACHES[beach_id]["name"],
+                "waste_risk_percent": None,
+                "status": "no_data",
+            },
+        }
+
+    return {
+        "metric": "waste_accumulation_risk",
+        "unit": "percent",
+        "days": days,
+        "data": {
+            "id": beach_id,
+            "name": BEACHES[beach_id]["name"],
+            **result,
+        },
     }
 
 

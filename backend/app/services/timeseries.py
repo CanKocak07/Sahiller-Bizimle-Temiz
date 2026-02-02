@@ -10,6 +10,7 @@ from app.services.air_quality import get_air_quality_for_beach_in_range
 from app.services.chlorophyll import get_chlorophyll_for_beach_in_range
 from app.services.oisst import get_sst_for_beach_in_range
 from app.services.turbidity import get_turbidity_for_beach_in_range
+from app.services.waste_risk import get_waste_risk_for_beach_in_range
 from app.services.wqi import calculate_wqi_from_components
 
 
@@ -69,6 +70,7 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
     filled_turb: List[Optional[float]] = []
     filled_chl: List[Optional[float]] = []
     filled_no2: List[Optional[float]] = []
+    filled_waste_risk: List[Optional[float]] = []
 
     for i in range(extended_days):
         d = start_day + timedelta(days=i)
@@ -85,6 +87,13 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
         if raw_turb is None and _IMPUTE_ENABLED:
             raw_turb = get_turbidity_for_beach_in_range(beach_id, start_date=lookback_start_date, end_date=end_date)
 
+        # Waste risk is derived from Sentinel-2 (and optional Landsat fallback); daily gaps are expected.
+        raw_waste_obj = get_waste_risk_for_beach_in_range(beach_id, start_date=start_date, end_date=end_date)
+        raw_waste = None if raw_waste_obj is None else raw_waste_obj.get("waste_risk_percent")
+        if raw_waste is None and _IMPUTE_ENABLED:
+            raw_waste_obj = get_waste_risk_for_beach_in_range(beach_id, start_date=lookback_start_date, end_date=end_date)
+            raw_waste = None if raw_waste_obj is None else raw_waste_obj.get("waste_risk_percent")
+
         air = get_air_quality_for_beach_in_range(beach_id, start_date=start_date, end_date=end_date)
         raw_no2 = air.get("no2")
         if raw_no2 is None and _IMPUTE_ENABLED:
@@ -95,11 +104,13 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
         turb = _impute_with_lookback(raw_turb, filled_turb)
         chl = _impute_with_lookback(raw_chl, filled_chl)
         no2 = _impute_with_lookback(raw_no2, filled_no2)
+        waste_risk = _impute_with_lookback(raw_waste, filled_waste_risk)
 
         filled_sst.append(sst)
         filled_turb.append(turb)
         filled_chl.append(chl)
         filled_no2.append(no2)
+        filled_waste_risk.append(waste_risk)
 
         # Derived metrics are computed from filled base metrics.
         air_quality = air.get("air_quality")
@@ -128,6 +139,7 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
                 "no2_mol_m2": None if no2 is None else float(no2),
                 "air_quality": air_quality,
                 "wqi": None if wqi is None else float(wqi),
+                "waste_risk_percent": None if waste_risk is None else float(waste_risk),
             }
         )
 
@@ -140,6 +152,7 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
         "chlorophyll": (lambda v: None if v is None else round(v, 4))(_mean([r["chlorophyll"] for r in series])),
         "no2_mol_m2": _mean([r["no2_mol_m2"] for r in series]),
         "wqi": (lambda v: None if v is None else round(v, 1))(_mean([r["wqi"] for r in series])),
+        "waste_risk_percent": (lambda v: None if v is None else round(v, 1))(_mean([r["waste_risk_percent"] for r in series])),
     }
 
     return {

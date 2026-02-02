@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BeachData } from '../types';
-import { Wind, Droplets, Thermometer, Clock } from 'lucide-react';
+import { Wind, Droplets, Thermometer, Trash2, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface SummaryCardProps {
@@ -20,11 +20,24 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
     return 'bg-red-100 text-red-700 border-red-200';
   };
 
-  const getAirQualityColor = (val: number | null) => {
+  const getAirQualityColor = (value: number | null) => {
+    if (value == null) {
+      return { text: 'text-slate-400', bar: 'bg-slate-200' };
+    }
+
+    if (value >= 80) {
+      return { text: 'text-green-600', bar: 'bg-green-500' };
+    }
+
+    return { text: 'text-red-600', bar: 'bg-red-500' };
+  };
+
+  const getWasteRiskColor = (val: number | null) => {
+    // High % = high risk (bad)
     if (val == null) return { text: 'text-slate-700', bar: 'bg-slate-300' };
-    if (val >= 90) return { text: 'text-green-700', bar: 'bg-green-500' };
-    if (val >= 80) return { text: 'text-amber-700', bar: 'bg-amber-500' };
-    return { text: 'text-red-700', bar: 'bg-red-500' };
+    if (val >= 70) return { text: 'text-red-700', bar: 'bg-red-500' };
+    if (val >= 40) return { text: 'text-amber-700', bar: 'bg-amber-500' };
+    return { text: 'text-green-700', bar: 'bg-green-500' };
   };
 
   // Refresh cadence is 5 days (cache window) to reduce backend/EE load.
@@ -91,6 +104,22 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
           <span className="font-semibold text-slate-700">
             {currentStats.temperature == null ? '-' : `${currentStats.temperature.toFixed(2)}°C`}
           </span>
+        </div>
+
+        {/* Waste Risk */}
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-slate-500 flex items-center gap-1">
+            <Trash2 size={12} /> Atık Birikme Riski
+          </span>
+          <span className={`font-semibold ${getWasteRiskColor(currentStats.wasteRisk).text}`}>
+            {currentStats.wasteRisk == null ? '-' : `${currentStats.wasteRisk}%`}
+          </span>
+          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+            <div
+              className={`${getWasteRiskColor(currentStats.wasteRisk).bar} h-full rounded-full`}
+              style={{ width: `${Math.min(100, currentStats.wasteRisk ?? 0)}%` }}
+            />
+          </div>
         </div>
 
       </div>
