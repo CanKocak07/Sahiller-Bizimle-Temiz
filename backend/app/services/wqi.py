@@ -6,28 +6,40 @@ def clamp(value: float, min_val: float = 0.0, max_val: float = 1.0) -> float:
     return max(min_val, min(value, max_val))
 
 
+def normalize_linear(value: float, good: float, bad: float) -> float:
+    """Map a value to [0..1] where 0=good, 1=bad, then clamp."""
+    if bad == good:
+        return 0.0
+    return clamp((value - good) / (bad - good))
+
+
 def normalize_sst(sst: float) -> float:
     """
     Akdeniz referansı:
-    18°C = çok iyi
+    20°C = çok iyi
     30°C = çok kötü
     """
-    return clamp((sst - 18) / (30 - 18))
+    # Calibrated to avoid over-penalizing typical seasonal sea temperatures.
+    return normalize_linear(sst, good=20.0, bad=30.0)
 
 
 def normalize_chlorophyll(chl: float) -> float:
     """
-    0–5 temiz
-    20+ riskli
+    0–2 temiz
+    250+ riskli
     """
-    return clamp(chl / 20)
+    # Calibrated so moderate chlorophyll doesn't immediately tank WQI.
+    # NOTE: In this dataset chlorophyll values can be very large (>> 20).
+    # Using a higher "bad" threshold avoids saturating at 1.0 for most days.
+    return normalize_linear(chl, good=2.0, bad=250.0)
 
 
 def normalize_turbidity(ndti: float) -> float:
     """
-    NDTI: -1 → +1
+    NDTI: lower is better
     """
-    return clamp((ndti + 1) / 2)
+    # Calibrated around typical coastal NDTI ranges so small negatives are treated as clean.
+    return normalize_linear(ndti, good=-0.05, bad=0.40)
 
 
 def calculate_wqi_from_components(sst: float, chl: float, turb: float) -> dict:
