@@ -154,14 +154,14 @@ function wqiToIndexOrNull(wqi: number | null | undefined): number | null {
   return Math.round(clamp(wqi, 0, 100));
 }
 
-function no2ToRelativeIndex(no2: number | null | undefined): number | null {
-  if (no2 == null || Number.isNaN(no2)) return null;
+type AirClass = 'good' | 'moderate' | 'poor';
 
-  // classify_no2 eşiklerini “relative index”e çeviriyoruz.
-  // good ~ 20, moderate ~ 50, poor ~ 80 gibi okunabilir bir ölçek.
-  if (no2 < 0.00003) return 20;
-  if (no2 < 0.00006) return 50;
-  return 80;
+function classifyNo2(no2: number | null | undefined): AirClass | null {
+  if (no2 == null || Number.isNaN(no2)) return null;
+  // Same thresholds as backend classify_no2.
+  if (no2 < 0.00003) return 'good';
+  if (no2 < 0.00006) return 'moderate';
+  return 'poor';
 }
 
 function fluctuateWqi(base: number | null): number | null {
@@ -186,19 +186,19 @@ function fluctuatePollutionPercentSeeded(rng: () => number, base: number | null)
   return Math.round(jitterAroundSeeded(rng, base, 5, 0, 100));
 }
 
-function fluctuateAirQualityIndex(base: number | null): number | null {
-  if (base == null) return null;
-  // Map 20/50/80 to the requested ranges.
-  if (base <= 25) return Math.round(randBetween(15, 25));
-  if (base <= 65) return Math.round(randBetween(45, 55));
-  return Math.round(randBetween(75, 95));
+function fluctuateAirQualityFromClass(cls: AirClass | null): number | null {
+  if (cls == null) return null;
+  // good -> 90-100, moderate -> 80-90, poor -> 70-80
+  if (cls === 'good') return Math.round(randBetween(90, 100));
+  if (cls === 'moderate') return Math.round(randBetween(80, 90));
+  return Math.round(randBetween(70, 80));
 }
 
-function fluctuateAirQualityIndexSeeded(rng: () => number, base: number | null): number | null {
-  if (base == null) return null;
-  if (base <= 25) return Math.round(randBetweenSeeded(rng, 15, 25));
-  if (base <= 65) return Math.round(randBetweenSeeded(rng, 45, 55));
-  return Math.round(randBetweenSeeded(rng, 75, 95));
+function fluctuateAirQualityFromClassSeeded(rng: () => number, cls: AirClass | null): number | null {
+  if (cls == null) return null;
+  if (cls === 'good') return Math.round(randBetweenSeeded(rng, 90, 100));
+  if (cls === 'moderate') return Math.round(randBetweenSeeded(rng, 80, 90));
+  return Math.round(randBetweenSeeded(rng, 70, 80));
 }
 
 function meanOrNull(values: Array<number | null | undefined>): number | null {
@@ -212,7 +212,7 @@ function seriesToEnvironmentalData(series: BeachSummaryResponse['series'], seedB
   return (series || []).map((r) => {
     const wqiBase = wqiToIndexOrNull(r.wqi);
     const pollutionBase = toPercentOrNull(r.pollution_percent);
-    const airBase = no2ToRelativeIndex(r.no2_mol_m2);
+    const airClass = classifyNo2(r.no2_mol_m2);
 
     // Deterministic per window + day + metric so values don't change on page refresh.
     const seedPrefix = `${seedBase}|${r.date}|`;
@@ -224,7 +224,7 @@ function seriesToEnvironmentalData(series: BeachSummaryResponse['series'], seedB
     return {
       date: r.date,
       waterQuality: fluctuateWqiSeeded(wqiRng, wqiBase),
-      airQuality: fluctuateAirQualityIndexSeeded(airRng, airBase),
+      airQuality: fluctuateAirQualityFromClassSeeded(airRng, airClass),
       temperature: toTemperature2dpOrNullSeeded(tempRng, r.sst_celsius),
       pollutionLevel: fluctuatePollutionPercentSeeded(pollutionRng, pollutionBase),
     };
