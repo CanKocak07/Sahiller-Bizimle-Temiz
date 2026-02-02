@@ -34,7 +34,7 @@ const DataCenter: React.FC = () => {
   const initialBeachId = query.get('beach') || 'konyaalti';
 
   const [selectedBeachId, setSelectedBeachId] = useState(initialBeachId);
-  const [selectedMetric, setSelectedMetric] = useState<MetricType>(MetricType.OCCUPANCY);
+    const [selectedMetric, setSelectedMetric] = useState<MetricType>(MetricType.AIR_QUALITY);
   const [data, setData] = useState<BeachData | null>(null);
   
   // AI Report State
@@ -79,7 +79,6 @@ const DataCenter: React.FC = () => {
 
         const header = [
             'date',
-            'occupancy_percent',
             'water_quality_wqi',
             'air_quality_index',
             'temperature_c',
@@ -91,7 +90,6 @@ const DataCenter: React.FC = () => {
             ...rows.map((r) =>
                 [
                     toCsvValue(r.date),
-                    toCsvValue(r.occupancy),
                     toCsvValue(r.waterQuality),
                     toCsvValue(r.airQuality),
                     toCsvValue(r.temperature),
@@ -184,7 +182,6 @@ const DataCenter: React.FC = () => {
                             <thead>
                                 <tr className="text-left text-slate-500 border-b">
                                     <th className="py-2 pr-4 font-medium">Tarih</th>
-                                    <th className="py-2 pr-4 font-medium">Doluluk</th>
                                     <th className="py-2 pr-4 font-medium">WQI</th>
                                     <th className="py-2 pr-4 font-medium">Sıcaklık</th>
                                     <th className="py-2 pr-4 font-medium">Kirlilik</th>
@@ -195,7 +192,6 @@ const DataCenter: React.FC = () => {
                                 {(data.history ?? []).map((r) => (
                                     <tr key={r.date} className="border-b last:border-b-0 text-slate-700">
                                         <td className="py-2 pr-4 whitespace-nowrap">{r.date}</td>
-                                        <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.occupancy, '%')}</td>
                                         <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.waterQuality)}</td>
                                         <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.temperature, '°C')}</td>
                                         <td className="py-2 pr-4 whitespace-nowrap">{formatMetric(r.pollutionLevel, '%')}</td>
@@ -268,8 +264,8 @@ const DataCenter: React.FC = () => {
                             <span className="text-sm font-medium text-green-600 bg-green-100 px-2 py-1 rounded">Açık</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                             <span className="text-sm text-slate-600">Doluluk Oranı</span>
-                                <span className="text-sm font-bold text-slate-800">{formatMetric(data.currentStats.occupancy, '%')}</span>
+                             <span className="text-sm text-slate-600">Hava Kalitesi</span>
+                            <span className="text-sm font-bold text-amber-600">{formatMetric(data.currentStats.airQuality)}</span>
                         </div>
                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                              <span className="text-sm text-slate-600">Kirlilik Düzeyi</span>

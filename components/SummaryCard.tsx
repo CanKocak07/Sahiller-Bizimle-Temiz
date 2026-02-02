@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BeachData } from '../types';
-import { Users, Droplets, Thermometer, Trash2, RefreshCw, Clock } from 'lucide-react';
+import { Wind, Droplets, Thermometer, Trash2, RefreshCw, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface SummaryCardProps {
@@ -96,16 +96,16 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
       </div>
       
       <div className="p-4 grid grid-cols-2 gap-4">
-        {/* Occupancy */}
+        {/* Air Quality */}
         <div className="flex flex-col gap-1">
           <span className="text-xs text-slate-500 flex items-center gap-1">
-            <Users size={12} /> Doluluk
+            <Wind size={12} /> Hava Kalitesi
           </span>
-          <span className="font-semibold text-slate-700">{currentStats.occupancy == null ? '-' : `${currentStats.occupancy}%`}</span>
+          <span className="font-semibold text-slate-700">{currentStats.airQuality == null ? '-' : currentStats.airQuality}</span>
           <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
             <div 
-              className="bg-teal-500 h-full rounded-full" 
-              style={{ width: `${currentStats.occupancy ?? 0}%` }}
+              className="bg-amber-500 h-full rounded-full" 
+              style={{ width: `${Math.min(100, currentStats.airQuality ?? 0)}%` }}
             />
           </div>
         </div>

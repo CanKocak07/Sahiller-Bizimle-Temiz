@@ -41,7 +41,7 @@ async def beach_report(payload: BeachReportRequest):
 
     user = (
         "Aşağıdaki sahil verilerini analiz et ve turistler için 3-5 cümlelik kısa bir rapor yaz. "
-        "Yüzme/güneşlenme için uygunluk, kalabalık, su kalitesi, kirlilik ve sıcaklığa odaklan. "
+        "Yüzme/güneşlenme için uygunluk, su kalitesi, kirlilik, hava kalitesi ve sıcaklığa odaklan. "
         "Son cümlede 1 net öneri ver (örn. ‘Sabah saatleri daha uygun’).\n\n"
         f"DATA: {beach}"
     )

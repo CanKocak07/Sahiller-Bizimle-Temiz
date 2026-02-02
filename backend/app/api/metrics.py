@@ -7,7 +7,6 @@ from app.services.chlorophyll import get_chlorophyll_for_beach
 from app.services.turbidity import get_turbidity_for_beach
 from app.services.wqi import calculate_wqi
 from app.services.pollution import calculate_pollution_from_turbidity
-from app.services.crowdedness import get_crowdedness_percent
 from app.services.air_quality import get_air_quality_for_beach
 from app.services.timeseries import get_beach_summary
 from app.services.summary_cache import CacheEntry, current_window, make_key, get as cache_get, set as cache_set
@@ -189,38 +188,6 @@ def get_pollution(
             "id": beach_id,
             "name": beach["name"],
             "pollution_percent": round(pollution, 1)
-        }
-    }
-
-@router.get("/crowdedness")
-def get_crowdedness(beach_id: str, days: int = 7):
-    if beach_id not in BEACHES:
-        raise HTTPException(status_code=404, detail="Beach not found")
-
-    sst = get_sst_for_beach(beach_id, days=days)
-    if sst is None:
-        return {
-            "metric": "crowdedness",
-            "unit": "percent",
-            "data": {
-                "id": beach_id,
-                "name": BEACHES[beach_id]["name"],
-                "crowdedness_percent": None,
-                "sst_celsius": None,
-                "status": "no_data",
-            },
-        }
-
-    crowdedness = get_crowdedness_percent(sst_celsius=sst)
-
-    return {
-        "metric": "crowdedness",
-        "unit": "percent",
-        "data": {
-            "id": beach_id,
-            "name": BEACHES[beach_id]["name"],
-            "crowdedness_percent": crowdedness,
-            "sst_celsius": round(sst, 2)
         }
     }
 

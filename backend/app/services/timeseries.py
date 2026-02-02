@@ -8,7 +8,6 @@ import os
 from app.data.beaches import BEACHES
 from app.services.air_quality import get_air_quality_for_beach_in_range
 from app.services.chlorophyll import get_chlorophyll_for_beach_in_range
-from app.services.crowdedness import get_crowdedness_percent
 from app.services.oisst import get_sst_for_beach_in_range
 from app.services.pollution import calculate_pollution_from_turbidity
 from app.services.turbidity import get_turbidity_for_beach_in_range
@@ -122,16 +121,6 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
         except Exception:
             wqi = None
 
-        # Represent a typical daytime crowdedness (14:00) for the given day.
-        crowdedness_percent: Optional[float]
-        if sst is None:
-            crowdedness_percent = None
-        else:
-            crowdedness_percent = get_crowdedness_percent(
-                now=datetime(d.year, d.month, d.day, 14, 0, 0),
-                sst_celsius=sst,
-            )
-
         extended.append(
             {
                 "date": d.isoformat(),
@@ -142,7 +131,6 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
                 "no2_mol_m2": None if no2 is None else float(no2),
                 "air_quality": air_quality,
                 "wqi": None if wqi is None else float(wqi),
-                "crowdedness_percent": None if crowdedness_percent is None else float(crowdedness_percent),
             }
         )
 
@@ -156,7 +144,6 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
         "chlorophyll": (lambda v: None if v is None else round(v, 4))(_mean([r["chlorophyll"] for r in series])),
         "no2_mol_m2": _mean([r["no2_mol_m2"] for r in series]),
         "wqi": (lambda v: None if v is None else round(v, 1))(_mean([r["wqi"] for r in series])),
-        "crowdedness_percent": (lambda v: None if v is None else round(v, 1))(_mean([r["crowdedness_percent"] for r in series])),
     }
 
     return {

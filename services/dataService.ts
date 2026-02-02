@@ -22,7 +22,6 @@ type BeachSummaryResponse = {
     no2_mol_m2: number | null;
     air_quality: string | null;
     wqi: number | null;
-    crowdedness_percent: number | null;
   }>;
   averages: {
     sst_celsius: number | null;
@@ -31,7 +30,6 @@ type BeachSummaryResponse = {
     chlorophyll: number | null;
     no2_mol_m2: number | null;
     wqi: number | null;
-    crowdedness_percent: number | null;
   };
   cache?: {
     window_start?: string;
@@ -105,7 +103,6 @@ function no2ToRelativeIndex(no2: number | null | undefined): number | null {
 function seriesToEnvironmentalData(series: BeachSummaryResponse['series']): EnvironmentalData[] {
   return (series || []).map((r) => ({
     date: r.date,
-    occupancy: toPercentOrNull(r.crowdedness_percent),
     waterQuality: wqiToIndexOrNull(r.wqi),
     airQuality: no2ToRelativeIndex(r.no2_mol_m2),
     temperature: roundToIntOrNull(r.sst_celsius),
@@ -125,7 +122,6 @@ export const getBeachData = async (beachId: string, historyDays: number = 7): Pr
   const avg = summary.averages;
 
   const currentStats = {
-    occupancy: toPercentOrNull(avg.crowdedness_percent),
     waterQuality: wqiToIndexOrNull(avg.wqi),
     temperature: roundToIntOrNull(avg.sst_celsius),
     pollutionLevel: toPercentOrNull(avg.pollution_percent),
@@ -148,7 +144,6 @@ export const getAllBeachesData = async (historyDays: number = 7): Promise<BeachD
       const avg = summary.averages;
 
       const currentStats = {
-        occupancy: toPercentOrNull(avg.crowdedness_percent),
         waterQuality: wqiToIndexOrNull(avg.wqi),
         temperature: roundToIntOrNull(avg.sst_celsius),
         pollutionLevel: toPercentOrNull(avg.pollution_percent),

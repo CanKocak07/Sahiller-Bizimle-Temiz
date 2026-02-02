@@ -27,16 +27,11 @@ function formatTickDate(value: unknown): string {
 }
 
 const TrendChart: React.FC<TrendChartProps> = ({ data, metric }) => {
-  let dataKey: keyof EnvironmentalData = 'occupancy';
-  let color = '#0ea5e9'; // sky
-  let unit = '';
+  let dataKey: keyof EnvironmentalData = 'waterQuality';
+  let color = '#0d9488'; // teal
+  let unit = ' WQI';
 
   switch (metric) {
-    case MetricType.OCCUPANCY:
-      dataKey = 'occupancy';
-      color = '#0ea5e9';
-      unit = '%';
-      break;
     case MetricType.WATER_QUALITY:
       dataKey = 'waterQuality';
       color = '#0d9488'; // teal

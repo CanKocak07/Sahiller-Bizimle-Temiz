@@ -7,11 +7,10 @@ export interface Beach {
 
 export interface EnvironmentalData {
   date: string;
-  occupancy: number | null; // 0-100%
   waterQuality: number | null; // 0-100 (WQI), higher is better
-  airQuality: number | null; // 0-500 (AQI), lower is better
+  airQuality: number | null; // relative index (lower is better)
   temperature: number | null; // Celsius
-  pollutionLevel: number | null; // 0-100%, higher is worse (correlated with occupancy)
+  pollutionLevel: number | null; // 0-100%, higher is worse
 }
 
 export interface BeachData extends Beach {
@@ -20,7 +19,6 @@ export interface BeachData extends Beach {
 }
 
 export enum MetricType {
-  OCCUPANCY = 'Doluluk Oranı',
   WATER_QUALITY = 'Su Kalitesi',
   POLLUTION = 'Kirlilik Düzeyi',
   AIR_QUALITY = 'Hava Kalitesi',
