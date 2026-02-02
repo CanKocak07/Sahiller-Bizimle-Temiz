@@ -11,6 +11,9 @@ import ee
 import os
 
 
+_DEFAULT_EE_PROJECT = "sahiller-bizimle-temiz-481410"
+
+
 def initialize_earth_engine():
     """
     Google Earth Engine'i initialize eder.
@@ -23,12 +26,14 @@ def initialize_earth_engine():
     - Service Account veya ortam değişkeni kullanılabilir
     """
 
+    project = (os.getenv("EE_PROJECT") or os.getenv("GOOGLE_CLOUD_PROJECT") or _DEFAULT_EE_PROJECT).strip()
+
     try:
         # Eğer EE zaten initialize edildiyse hata vermez
-        ee.Initialize(project="sahiller-bizimle-temiz-481410")
-        print("Earth Engine initialized successfully.")
-
+        ee.Initialize(project=project)
+        print(f"Earth Engine initialized successfully (project={project}).")
     except Exception as e:
         print("Earth Engine initialization failed.")
+        print("Project:", project)
         print("Error:", e)
-        raise e
+        raise
