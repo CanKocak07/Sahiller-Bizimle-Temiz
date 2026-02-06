@@ -48,7 +48,7 @@ def _range_start_for_lookback(day_start: str) -> str:
     return (d - timedelta(days=_LOOKBACK_DAYS - 1)).isoformat()
 
 
-def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
+def get_beach_summary(beach_id: str, days: int = 7, end_day: Optional[date] = None) -> Dict[str, Any]:
     if beach_id not in BEACHES:
         raise ValueError("Beach not found")
 
@@ -57,7 +57,10 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
 
     beach = BEACHES[beach_id]
 
-    end_day = date.today()
+    # Anchor the time series to a specific day (defaults to local machine day).
+    # This enables stable daily snapshots (e.g., "as-of TR midnight") regardless of
+    # process restarts.
+    end_day = end_day or date.today()
     # Compute an extended window so each requested day can fall back to the
     # previous N days (default 5) even when the requested range starts recently.
     extended_days = days + (_LOOKBACK_DAYS if _IMPUTE_ENABLED else 0)
@@ -81,30 +84,60 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
         raw_sst = get_sst_for_beach_in_range(beach_id, start_date=start_date, end_date=end_date)
         raw_chl = get_chlorophyll_for_beach_in_range(beach_id, start_date=start_date, end_date=end_date)
 
+        sst_source = "daily" if raw_sst is not None else None
+        chl_source = "daily" if raw_chl is not None else None
+
         # Turbidity/NO2 are more likely to have daily gaps; if missing, try a
         # 5-day window ending on this day (matches "last 5 days average" ask).
         raw_turb = get_turbidity_for_beach_in_range(beach_id, start_date=start_date, end_date=end_date)
+        turb_source = "daily" if raw_turb is not None else None
         if raw_turb is None and _IMPUTE_ENABLED:
             raw_turb = get_turbidity_for_beach_in_range(beach_id, start_date=lookback_start_date, end_date=end_date)
+            if raw_turb is not None:
+                turb_source = "window_avg"
 
         # Waste risk is derived from Sentinel-2 (and optional Landsat fallback); daily gaps are expected.
         raw_waste_obj = get_waste_risk_for_beach_in_range(beach_id, start_date=start_date, end_date=end_date)
         raw_waste = None if raw_waste_obj is None else raw_waste_obj.get("waste_risk_percent")
+        waste_source = "daily" if raw_waste is not None else None
         if raw_waste is None and _IMPUTE_ENABLED:
             raw_waste_obj = get_waste_risk_for_beach_in_range(beach_id, start_date=lookback_start_date, end_date=end_date)
             raw_waste = None if raw_waste_obj is None else raw_waste_obj.get("waste_risk_percent")
+            if raw_waste is not None:
+                waste_source = "window_avg"
 
         air = get_air_quality_for_beach_in_range(beach_id, start_date=start_date, end_date=end_date)
         raw_no2 = air.get("no2")
+        no2_source = "daily" if raw_no2 is not None else None
         if raw_no2 is None and _IMPUTE_ENABLED:
             air5 = get_air_quality_for_beach_in_range(beach_id, start_date=lookback_start_date, end_date=end_date)
             raw_no2 = air5.get("no2")
+            if raw_no2 is not None:
+                no2_source = "window_avg"
 
         sst = _impute_with_lookback(raw_sst, filled_sst)
         turb = _impute_with_lookback(raw_turb, filled_turb)
         chl = _impute_with_lookback(raw_chl, filled_chl)
         no2 = _impute_with_lookback(raw_no2, filled_no2)
         waste_risk = _impute_with_lookback(raw_waste, filled_waste_risk)
+
+        # If we ended up filling a missing daily/window value, mark it as imputed.
+        if sst_source is None and sst is not None:
+            sst_source = "imputed"
+        if chl_source is None and chl is not None:
+            chl_source = "imputed"
+        if turb_source is None and turb is not None:
+            turb_source = "imputed"
+        if no2_source is None and no2 is not None:
+            no2_source = "imputed"
+        if waste_source is None and waste_risk is not None:
+            waste_source = "imputed"
+
+        sst_source = sst_source or "missing"
+        chl_source = chl_source or "missing"
+        turb_source = turb_source or "missing"
+        no2_source = no2_source or "missing"
+        waste_source = waste_source or "missing"
 
         filled_sst.append(sst)
         filled_turb.append(turb)
@@ -130,6 +163,15 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
         except Exception:
             wqi = None
 
+        # WQI quality follows the least reliable component.
+        def _rank(src: str) -> int:
+            return {"missing": 0, "imputed": 1, "window_avg": 2, "daily": 3}.get(src, 0)
+
+        wqi_source = "missing"
+        if wqi is not None:
+            min_rank = min(_rank(sst_source), _rank(chl_source), _rank(turb_source))
+            wqi_source = {3: "daily", 2: "window_avg", 1: "imputed", 0: "missing"}.get(min_rank, "missing")
+
         extended.append(
             {
                 "date": d.isoformat(),
@@ -140,6 +182,15 @@ def get_beach_summary(beach_id: str, days: int = 7) -> Dict[str, Any]:
                 "air_quality": air_quality,
                 "wqi": None if wqi is None else float(wqi),
                 "waste_risk_percent": None if waste_risk is None else float(waste_risk),
+                "sources": {
+                    "sst_celsius": sst_source,
+                    "turbidity_ndti": turb_source,
+                    "chlorophyll": chl_source,
+                    "no2_mol_m2": no2_source,
+                    "air_quality": no2_source,
+                    "waste_risk_percent": waste_source,
+                    "wqi": wqi_source,
+                },
             }
         )
 

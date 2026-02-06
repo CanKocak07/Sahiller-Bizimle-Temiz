@@ -29,7 +29,7 @@ from app.api.metrics import router as metrics_router
 from app.api.ai import router as ai_router
 from app.api.forms import router as forms_router
 from app.api.forms import _init_db as init_forms_db
-from app.services.prewarm import prewarm_loop
+from app.services.daily_refresh_loop import daily_refresh_loop
 
 app = FastAPI(
     title="Sahiller Bizimle Temiz API",
@@ -70,14 +70,17 @@ async def startup_event():
     init_forms_db()
 
     # Prewarm cache windows so the whole site updates automatically.
-    # Cache windows default to 5 days (see CACHE_WINDOW_DAYS).
-    prewarm_enabled = os.getenv("PREWARM_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
-    if prewarm_enabled:
-        try:
-            days = int(os.getenv("PREWARM_DAYS", "7"))
-        except ValueError:
-            days = 7
-        asyncio.create_task(prewarm_loop(days=days))
+    # Daily refresh loop is best-effort; for production, prefer Cloud Scheduler
+    # calling /api/metrics/admin/refresh at 00:00 TR.
+    try:
+        days = int(os.getenv("REFRESH_DAYS", "7"))
+    except ValueError:
+        days = 7
+    try:
+        revise_days = int(os.getenv("REFRESH_REVISE_DAYS", "5"))
+    except ValueError:
+        revise_days = 5
+    asyncio.create_task(daily_refresh_loop(days=days, revise_days=revise_days))
 
 app.include_router(metrics_router)
 app.include_router(ai_router)

@@ -5,38 +5,27 @@ import SummaryCard from '../components/SummaryCard';
 import VolunteerSection from '../components/VolunteerSection';
 import Newsletter from '../components/Newsletter';
 import { MapPin } from 'lucide-react';
+import UpdateCountdown from '../components/UpdateCountdown';
+import { getTrDateKey } from '../utils/trTime';
 
 const Dashboard: React.FC = () => {
   const [beachData, setBeachData] = useState<BeachData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const WINDOW_DAYS = 5;
-
-  const getCurrentWindowStart = () => {
-    // 5-day windows aligned to UTC midnight to avoid DST edge cases.
-    const now = new Date();
-    const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const dayIndex = Math.floor(utcMidnight / 86400000);
-    const windowStartDay = dayIndex - (dayIndex % WINDOW_DAYS);
-    return windowStartDay * 86400000;
-  };
-
-  // Track the current 5-day window start (UTC midnight aligned)
-  const currentWindowRef = useRef<number>(getCurrentWindowStart());
+  // Track the current TR day key so we refresh right after 00:00 TR.
+  const currentTrDayRef = useRef<string>(getTrDateKey());
 
   const fetchData = async () => {
-    // Determine current window start
-    const newWindow = getCurrentWindowStart();
+    const trDay = getTrDateKey();
+    if (trDay !== currentTrDayRef.current || beachData.length === 0) {
+      currentTrDayRef.current = trDay;
+    }
 
-    // If it's a new block (or initial load), we get new data
-    if (newWindow !== currentWindowRef.current || beachData.length === 0) {
-      currentWindowRef.current = newWindow;
-      try {
-        const all = await getAllBeachesData();
-        setBeachData(all);
-      } catch (e) {
-        console.error('Dashboard data fetch failed:', e);
-      }
+    try {
+      const all = await getAllBeachesData();
+      setBeachData(all);
+    } catch (e) {
+      console.error('Dashboard data fetch failed:', e);
     }
 
     setLoading(false);
@@ -48,14 +37,14 @@ const Dashboard: React.FC = () => {
       void fetchData();
     }, 800);
 
-    // Periodically check whether we entered a new 5-day window.
+    // Periodically check whether we entered a new TR day.
     const interval = setInterval(() => {
-      const checkWindow = getCurrentWindowStart();
-      if (checkWindow !== currentWindowRef.current) {
+      const trDay = getTrDateKey();
+      if (trDay !== currentTrDayRef.current) {
         setLoading(true);
         setTimeout(() => void fetchData(), 500);
       }
-    }, 60 * 60 * 1000);
+    }, 60 * 1000);
 
     return () => {
         clearTimeout(timer);
@@ -75,12 +64,17 @@ const Dashboard: React.FC = () => {
             Antalya Sahilleri, <span className="text-teal-300">Mercek Altında.</span>
           </h1>
           <p className="text-lg md:text-xl text-slate-200 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Akdeniz'in en değerli plajlarında su temizliği ve çevre sağlığının 5 günde bir güncellenen takibi.
+            Akdeniz'in en değerli plajlarında su temizliği ve çevre sağlığının her gün 00:00 (TR) güncellenen takibi.
           </p>
           <div className="flex justify-center gap-4">
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-sm font-medium">5 Günde Bir Güncelleme</span>
+              <span className="text-sm font-medium">Günlük Güncelleme (00:00 TR)</span>
+            </div>
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+              <span className="text-sm font-medium">
+                <UpdateCountdown showSeconds={false} prefix="Kalan" />
+              </span>
             </div>
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
                <MapPin size={16} className="text-teal-300" />

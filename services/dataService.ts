@@ -22,6 +22,7 @@ type BeachSummaryResponse = {
     air_quality: string | null;
     wqi: number | null;
     waste_risk_percent?: number | null;
+    sources?: Record<string, string>;
   }>;
   averages: {
     sst_celsius: number | null;
@@ -32,10 +33,16 @@ type BeachSummaryResponse = {
     waste_risk_percent?: number | null;
   };
   cache?: {
+    // Legacy (old 5-day cache)
     window_start?: string;
     window_end?: string;
     generated_at?: string;
     hit?: boolean;
+
+    // Daily snapshot (new)
+    snapshot_date?: string; // YYYY-MM-DD (TR)
+    timezone?: string; // Europe/Istanbul
+    next_refresh_at?: string; // ISO
   };
 };
 
@@ -203,14 +210,15 @@ function meanOrNull(values: Array<number | null | undefined>): number | null {
   return sum / xs.length;
 }
 
-function seriesToEnvironmentalData(series: BeachSummaryResponse['series'], seedBase: string): EnvironmentalData[] {
+function seriesToEnvironmentalData(series: BeachSummaryResponse['series'], beachId: string): EnvironmentalData[] {
   return (series || []).map((r) => {
     const wqiBase = wqiToIndexOrNull(r.wqi);
     const airClass = classifyNo2(r.no2_mol_m2);
     const wasteBase = toPercentOrNull(r.waste_risk_percent);
 
-    // Deterministic per window + day + metric so values don't change on page refresh.
-    const seedPrefix = `${seedBase}|${r.date}|`;
+    // Deterministic per beach + day + metric so values don't change on refresh
+    // and don't drift when the backend snapshot refreshes.
+    const seedPrefix = `${beachId}|${r.date}|`;
     const wqiRng = makeSeededRng(`${seedPrefix}wqi`);
     const airRng = makeSeededRng(`${seedPrefix}air`);
     const tempRng = makeSeededRng(`${seedPrefix}temp`);
@@ -236,9 +244,7 @@ export const getBeachData = async (beachId: string, historyDays: number = 7): Pr
 
   const summary = await getBeachSummary(beachId, historyDays);
 
-  // Prefer cache window_start so jitter changes only when the 5-day window changes.
-  const seedBase = summary.cache?.window_start ?? summary.cache?.generated_at ?? summary.series?.[0]?.date ?? '';
-  const history = seriesToEnvironmentalData(summary.series, seedBase);
+  const history = seriesToEnvironmentalData(summary.series, beachId);
 
   // Summary cards: compute "average" stats from the (fluctuated) series.
   const currentStats = {
@@ -273,8 +279,7 @@ export const getAllBeachesData = async (historyDays: number = 7): Promise<BeachD
     BEACHES.map(async (beach: any) => {
       const summary = await getBeachSummary(beach.id, historyDays);
 
-      const seedBase = summary.cache?.window_start ?? summary.cache?.generated_at ?? summary.series?.[0]?.date ?? '';
-      const history = seriesToEnvironmentalData(summary.series, seedBase);
+      const history = seriesToEnvironmentalData(summary.series, beach.id);
 
       const currentStats = {
         date: history.length ? history[history.length - 1].date : '',

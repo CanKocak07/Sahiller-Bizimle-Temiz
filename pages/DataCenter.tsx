@@ -5,6 +5,7 @@ import { generateBeachReport } from '../services/aiService';
 import { BeachData, MetricType } from '../types';
 import { BEACHES } from '../constants';
 import TrendChart from '../components/TrendChart';
+import UpdateCountdown from '../components/UpdateCountdown';
 import { BarChart2, Download, Bot } from 'lucide-react';
 
 function toCsvValue(value: unknown): string {
@@ -167,7 +168,7 @@ const DataCenter: React.FC = () => {
                             <h2 className="text-lg font-semibold text-slate-800">7 Günlük {selectedMetric} Eğilimi</h2>
                         </div>
                         <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                            Güncelleme periyodu: 5 gün
+                            Güncelleme: günlük (00:00 TR) • <UpdateCountdown showSeconds={false} prefix="Kalan" />
                         </span>
                     </div>
                     
