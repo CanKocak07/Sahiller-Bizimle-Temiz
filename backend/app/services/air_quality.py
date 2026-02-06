@@ -5,11 +5,15 @@ from app.utils.geo import get_beach_buffer
 
 import os
 
-_FILL_GAPS_ENABLED = os.getenv("FILL_GAPS_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
+# OFFL NO2 dataset availability can lag / end earlier than NRTI. For a site that
+# refreshes daily, we default to using NRTI as a fallback when OFFL is missing.
+_FILL_GAPS_ENABLED = os.getenv("FILL_GAPS_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}
 
 _NO2_OFFL_COLLECTION = "COPERNICUS/S5P/OFFL/L3_NO2"
 _NO2_NRTI_COLLECTION = "COPERNICUS/S5P/NRTI/L3_NO2"
-_NO2_BAND = "tropospheric_NO2_column_number_density"
+_NO2_OFFL_BAND = "tropospheric_NO2_column_number_density"
+# Earth Engine catalog example for NRTI uses NO2_column_number_density.
+_NO2_NRTI_BAND = "NO2_column_number_density"
 
 
 def _parse_ymd(s: str) -> datetime:
@@ -20,15 +24,24 @@ def _fmt_ymd(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d")
 
 
-def _no2_mean_for_range(dataset_id: str, geometry: ee.Geometry, start_date: str, end_date: str) -> Optional[float]:
+def _no2_mean_for_range(
+    dataset_id: str,
+    band: str,
+    geometry: ee.Geometry,
+    start_date: str,
+    end_date: str,
+) -> Optional[float]:
     collection = (
         ee.ImageCollection(dataset_id)
-        .select(_NO2_BAND)
+        .select(band)
         .filterDate(start_date, end_date)
         .filterBounds(geometry)
     )
 
-    if collection.size().getInfo() == 0:
+    try:
+        if collection.size().getInfo() == 0:
+            return None
+    except Exception:
         return None
 
     image = collection.mean()
@@ -40,7 +53,7 @@ def _no2_mean_for_range(dataset_id: str, geometry: ee.Geometry, start_date: str,
     )
 
     try:
-        v = stats.get(_NO2_BAND).getInfo()
+        v = stats.get(band).getInfo()
     except Exception:
         return None
 
@@ -73,9 +86,9 @@ def get_air_quality_for_beach_in_range(beach_id: str, start_date: str, end_date:
     geometry = get_beach_buffer(beach_id, buffer_m=3000)
 
     # Try OFFL first (more stable), then NRTI (lower latency) if enabled.
-    no2 = _no2_mean_for_range(_NO2_OFFL_COLLECTION, geometry, start_date, end_date)
+    no2 = _no2_mean_for_range(_NO2_OFFL_COLLECTION, _NO2_OFFL_BAND, geometry, start_date, end_date)
     if no2 is None and _FILL_GAPS_ENABLED:
-        no2 = _no2_mean_for_range(_NO2_NRTI_COLLECTION, geometry, start_date, end_date)
+        no2 = _no2_mean_for_range(_NO2_NRTI_COLLECTION, _NO2_NRTI_BAND, geometry, start_date, end_date)
 
     # If still missing and we're on a narrow daily window, widen by ±1 day once.
     if no2 is None and _FILL_GAPS_ENABLED:
@@ -88,9 +101,9 @@ def get_air_quality_for_beach_in_range(beach_id: str, start_date: str, end_date:
         if start is not None and end is not None and (end - start) <= timedelta(days=1):
             widened_start = _fmt_ymd(start - timedelta(days=1))
             widened_end = _fmt_ymd(end + timedelta(days=1))
-            no2 = _no2_mean_for_range(_NO2_NRTI_COLLECTION, geometry, widened_start, widened_end)
+            no2 = _no2_mean_for_range(_NO2_NRTI_COLLECTION, _NO2_NRTI_BAND, geometry, widened_start, widened_end)
             if no2 is None:
-                no2 = _no2_mean_for_range(_NO2_OFFL_COLLECTION, geometry, widened_start, widened_end)
+                no2 = _no2_mean_for_range(_NO2_OFFL_COLLECTION, _NO2_OFFL_BAND, geometry, widened_start, widened_end)
 
     return {
         "no2": no2,

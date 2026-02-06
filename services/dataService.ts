@@ -163,6 +163,13 @@ function wqiToIndexOrNull(wqi: number | null | undefined): number | null {
 
 type AirClass = 'good' | 'moderate' | 'poor';
 
+function parseAirClass(value: string | null | undefined): AirClass | null {
+  if (value == null) return null;
+  const v = String(value).trim().toLowerCase();
+  if (v === 'good' || v === 'moderate' || v === 'poor') return v;
+  return null;
+}
+
 function classifyNo2(no2: number | null | undefined): AirClass | null {
   if (no2 == null || Number.isNaN(no2)) return null;
   // Same thresholds as backend classify_no2.
@@ -213,7 +220,7 @@ function meanOrNull(values: Array<number | null | undefined>): number | null {
 function seriesToEnvironmentalData(series: BeachSummaryResponse['series'], beachId: string): EnvironmentalData[] {
   return (series || []).map((r) => {
     const wqiBase = wqiToIndexOrNull(r.wqi);
-    const airClass = classifyNo2(r.no2_mol_m2);
+    const airClass = classifyNo2(r.no2_mol_m2) ?? parseAirClass(r.air_quality);
     const wasteBase = toPercentOrNull(r.waste_risk_percent);
 
     // Deterministic per beach + day + metric so values don't change on refresh

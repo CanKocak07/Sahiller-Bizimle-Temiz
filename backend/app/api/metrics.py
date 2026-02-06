@@ -313,14 +313,26 @@ def beach_summary(
     beach_id: str = Query(..., description="Beach identifier (e.g. konyaalti)"),
     days: int = Query(7, ge=1, le=30),
     debug: bool = Query(False, description="If true, logs computed metrics to server console"),
+    refresh: bool = Query(
+        False,
+        description="If true, recomputes and revises last days before serving (expensive). Prefer /admin/refresh.",
+    ),
 ):
     if beach_id not in BEACHES:
         raise HTTPException(status_code=404, detail="Beach not found")
 
     try:
-        # Ensure last 5 days are revised (only if new/improved data arrives).
-        refresh_beach(beach_id, as_of_day=tr_today(), days=days, revise_days=5)
-        value = _assemble_series_from_store(beach_id, days=days, end_day=tr_today())
+        end_day = tr_today()
+
+        # By default, serve the stored daily snapshot series. Missing days are
+        # computed on-demand inside _assemble_series_from_store.
+        #
+        # IMPORTANT: We intentionally do not revise on every request; revisions
+        # should be triggered by a daily scheduler calling /admin/refresh.
+        if refresh:
+            refresh_beach(beach_id, as_of_day=end_day, days=days, revise_days=5)
+
+        value = _assemble_series_from_store(beach_id, days=days, end_day=end_day)
         if debug:
             logger.info(
                 "[debug] beach-summary served from daily store beach_id=%s days=%s\n%s",
