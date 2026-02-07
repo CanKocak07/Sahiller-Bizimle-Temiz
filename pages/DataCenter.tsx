@@ -168,7 +168,7 @@ const DataCenter: React.FC = () => {
                             <h2 className="text-lg font-semibold text-slate-800">7 Günlük {selectedMetric} Eğilimi</h2>
                         </div>
                         <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">
-                            Güncelleme: günlük (00:00 TR) • <UpdateCountdown showSeconds={false} prefix="Kalan" />
+                            <UpdateCountdown showSeconds={true} prefix="Güncelleme" />
                         </span>
                     </div>
                     

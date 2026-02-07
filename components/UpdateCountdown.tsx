@@ -22,7 +22,7 @@ const UpdateCountdown: React.FC<Props> = ({ className, showSeconds = false, pref
   const text = useMemo(() => formatDuration(remainingMs, { showSeconds }), [remainingMs, showSeconds]);
 
   return (
-    <span className={className} title="Günlük güncelleme saati: 00:00 TR">
+    <span className={className}>
       {prefix}: {text}
     </span>
   );

@@ -5,7 +5,6 @@ import SummaryCard from '../components/SummaryCard';
 import VolunteerSection from '../components/VolunteerSection';
 import Newsletter from '../components/Newsletter';
 import { MapPin } from 'lucide-react';
-import UpdateCountdown from '../components/UpdateCountdown';
 import { getTrDateKey } from '../utils/trTime';
 
 const Dashboard: React.FC = () => {
@@ -64,17 +63,12 @@ const Dashboard: React.FC = () => {
             Antalya Sahilleri, <span className="text-teal-300">Mercek Altında.</span>
           </h1>
           <p className="text-lg md:text-xl text-slate-200 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Akdeniz'in en değerli plajlarında su temizliği ve çevre sağlığının her gün 00:00 (TR) güncellenen takibi.
+            Akdeniz'in en değerli plajlarında su temizliği ve çevre sağlığının her gün güncellenen takibi.
           </p>
           <div className="flex justify-center gap-4">
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-sm font-medium">Günlük Güncelleme (00:00 TR)</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
-              <span className="text-sm font-medium">
-                <UpdateCountdown showSeconds={false} prefix="Kalan" />
-              </span>
+              <span className="text-sm font-medium">Günlük Güncelleme</span>
             </div>
             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
                <MapPin size={16} className="text-teal-300" />

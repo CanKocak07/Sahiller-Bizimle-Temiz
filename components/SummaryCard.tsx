@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BeachData } from '../types';
-import { Wind, Droplets, Thermometer, Trash2, Clock } from 'lucide-react';
+import { Wind, Droplets, Thermometer, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import UpdateCountdown from './UpdateCountdown';
 
@@ -59,17 +59,13 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data }) => {
         
         {/* Update Cadence Badge */}
         <div className="absolute top-0 right-0 z-20 bg-slate-900/80 backdrop-blur-sm text-white text-xs font-mono py-1 px-2 rounded-bl-lg flex items-center gap-1.5 border-l border-b border-white/10">
-          <span>Güncelleme: günlük</span>
+          <span>
+            <UpdateCountdown showSeconds={true} prefix="Güncelleme" />
+          </span>
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent z-20">
           <h3 className="text-white font-bold text-lg leading-tight">{data.name}</h3>
-          <p className="text-white/80 text-xs flex items-center gap-1 mt-0.5">
-            <Clock size={10} /> 00:00 (TR)
-          </p>
-          <p className="text-white/70 text-[10px] mt-0.5 font-mono">
-            <UpdateCountdown showSeconds={false} prefix="Kalan" />
-          </p>
         </div>
       </div>
       
