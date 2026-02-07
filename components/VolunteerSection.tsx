@@ -40,6 +40,9 @@ const VolunteerSection: React.FC = () => {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-6">Neden Gönüllü Olmalısınız?</h2>
           <p className="text-slate-600 text-lg">
+            Bu sitede verilen bilgiler doğrultusunda, çevre bilinci oluşturmak ve gelecek günlerimizi koruma altına almak amacıyla formu dolduran gönüllülerle birlikte sahil kenarında atık toplama etkinlikleri gerçekleştirilecektir. Ayrıca bu etkinlik sırasında doğamız hakkında daha fazla bilgi edinme ve farklı insanlarla tanışma imkânı da sağlanacaktır. Siz de keyifli vakit geçirmek ve çevremize katkı sağlamak isterseniz, etkinliklerimizden haberdar olmak için gönüllülük formunu doldurabilirsiniz.
+          </p>
+          <p className="text-slate-600 text-lg mt-4">
             Antalya'nın eşsiz doğasını korumak sadece bir görev değil, geleceğe bırakılacak en büyük mirastır. İşte harekete geçmeniz için 3 neden:
           </p>
         </div>

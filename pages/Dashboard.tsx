@@ -106,21 +106,21 @@ const Dashboard: React.FC = () => {
                   <MapPin />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Hava Kalitesi</h3>
-                <p className="text-slate-600 text-sm">Sahil çevresindeki hava kalitesini takip edin ve planınızı daha bilinçli yapın.</p>
+                <p className="text-slate-600 text-sm">Sahil çevresindeki hava kalitesinin düzenli olarak takip edilmesi hem insan sağlığının korunmasına katkı sağlar hem de çevresel koşullar hakkında farkındalık oluşturur bu sayede bireyler ve yerel yönetimler daha bilinçli  kararlar alarak sahillerin sürdürülebilir  bir şekilde kullanmasına destek olabilir</p>
               </div>
               <div className="p-6 bg-slate-50 rounded-2xl">
                 <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <MapPin />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Su Güvenliği</h3>
-                <p className="text-slate-600 text-sm">Güvenli bir yüzme deneyimi için su kalitesi endekslerini takip edin ve bilgi sahibi olun.</p>
+                <p className="text-slate-600 text-sm">Su kalitesinin düzenli olarak takip edilmesi kirlilik seviyelerini ve olası risklerin erken tespit edilmesini sağlar bu veriler sayesinde sahillerin kullanım durumu daha doğru değerlendirilebilir ve gerekli önlemler zamanda alınabilir</p>
               </div>
               <div className="p-6 bg-slate-50 rounded-2xl">
                 <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <MapPin />
                 </div>
                 <h3 className="font-semibold text-lg mb-2">Ekolojik Etki</h3>
-                <p className="text-slate-600 text-sm">Çevresel limitlere saygı göstererek Antalya'nın doğal güzelliklerini korumamıza yardımcı olun.</p>
+                <p className="text-slate-600 text-sm">Sahil çevresine ait çevresel verilerin  izlenmesi insan faaliyetlerinin doğal ekosistem üzerindeki etkilerini ortaya koyar böylece çevreye zarar vermeden alınabilecek önlemler belirlenir ve doğal dengenin korunmasına katkı sağlanır</p>
               </div>
             </div>
           </div>
