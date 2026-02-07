@@ -8,8 +8,19 @@ Bu dosya:
 """
 
 import asyncio
+import importlib.metadata as _importlib_metadata
 import os
 from pathlib import Path
+
+# Some dependencies (and/or reload tooling) may rely on importlib.metadata.packages_distributions,
+# which is not available on Python < 3.10. Provide a best-effort shim for local dev.
+if not hasattr(_importlib_metadata, "packages_distributions"):
+    try:
+        import importlib_metadata as _importlib_metadata_backport  # type: ignore
+
+        _importlib_metadata.packages_distributions = _importlib_metadata_backport.packages_distributions  # type: ignore[attr-defined]
+    except Exception:
+        pass
 
 try:
     from dotenv import load_dotenv
